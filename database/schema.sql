@@ -1,5 +1,5 @@
 -- Create the database
-CREATE DATABASE CVD_RiskDB;
+#CREATE DATABASE CVD_RiskDB;
 USE CVD_RiskDB;
 
 -- Users Table (For Patients and Clinicians)
