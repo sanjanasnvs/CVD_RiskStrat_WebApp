@@ -26,6 +26,7 @@ SECRET_KEY = "django-insecure-qlpex**)z!zh*qya#mp+_93^w+!s-$9^pyr&+b67^nj55yyt)(
 DEBUG = True
 
 ALLOWED_HOSTS = []
+AUTH_USER_MODEL = 'accounts.User'
 
 
 # Application definition
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -81,7 +83,7 @@ DATABASES = {
 	"PASSWORD": "Llama123@",
 	"HOST": "localhost",
 	"PORT": "3306",
-	"OPTIONS: {
+	"OPTIONS": {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
     }
@@ -106,6 +108,8 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -128,3 +132,5 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+LOGIN_REDIRECT_URL = '/dashboard/'
+
