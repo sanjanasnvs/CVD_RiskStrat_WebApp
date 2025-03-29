@@ -23,5 +23,10 @@ name='password_reset_confirm'),
     path('reset/done/', 
 auth_views.PasswordResetCompleteView.as_view(template_name='users/password_reset_complete.html'), 
 name='password_reset_complete'),
+
+    # Admin views URLs
+    path('admin/login/', views.admin_login_view, name='admin_login'),
+    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
+
 ]
 
