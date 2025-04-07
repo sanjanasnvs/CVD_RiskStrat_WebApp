@@ -68,10 +68,26 @@ CREATE TABLE Responses (
     response_id INT AUTO_INCREMENT PRIMARY KEY,
     patient_id INT,
     question_id INT,
-    response_text TEXT NOT NULL,
-    response_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    response_type VARCHAR(50), -- e.g., 'categorical', 'boolean', 'numeric'
+    numeric_response FLOAT,
+    boolean_response BOOLEAN,
+    option_selected_id INT,  -- FK to selected option    response_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
     FOREIGN KEY (patient_id) REFERENCES Patients(patient_id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES Questionnaire(question_id) ON DELETE CASCADE
+    FOREIGN KEY (option_selected_id) REFERENCES QuestionResponseOptions(id)
+
+);
+
+-- Questionnaire Response Options Table
+CREATE TABLE QuestionResponseOptions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    question_id INT,
+    option_text TEXT,
+    value_range_start FLOAT,
+    value_range_end FLOAT,
+    option_label VARCHAR(100),
+    FOREIGN KEY (question_id) REFERENCES Questionnaire(question_id)
 );
 
 -- Risk Stratification Table
