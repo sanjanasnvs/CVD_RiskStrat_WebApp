@@ -96,6 +96,7 @@ class Questionnaire(models.Model):
     dependencies = models.TextField(blank=True, null=True)
     admin = models.ForeignKey(Admins, models.DO_NOTHING, blank=True, null=True)
     question_order = models.IntegerField()
+    response_type = models.CharField(max_length=50, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -107,7 +108,11 @@ class Responses(models.Model):
     response_id = models.AutoField(primary_key=True)
     patient = models.ForeignKey(Patients, models.DO_NOTHING, blank=True, null=True)
     question = models.ForeignKey(Questionnaire, models.DO_NOTHING, blank=True, null=True)
-    response_text = models.TextField()
+    #Use one of these depending on response_type
+    selected_option = models.ForeignKey('QuestionResponseOptions', models.DO_NOTHING, blank=True, null=True)
+    numeric_response = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    text_answer = models.TextField(blank=True, null=True)
+    
     response_date = models.DateTimeField(blank=True, null=True)
 
     class Meta:
@@ -128,6 +133,19 @@ class RiskStratification(models.Model):
         managed = False
         db_table = 'Risk_Stratification'
 
+class QuestionResponseOptions(models.Model): # This table allows us to define, for each question, all the possible options
+    option_id = models.AutoField(primary_key=True)
+    question = models.ForeignKey(Questionnaire, models.DO_NOTHING)
+    option_text = models.CharField(max_length=255)
+    value = models.IntegerField(blank=True, null=True)  # Optional: use for scoring
+    display_order = models.IntegerField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'Question_Response_Options'
+        verbose_name_plural = 'Question response options'
+
+
 
 class Users(models.Model):
     user_id = models.AutoField(primary_key=True)
@@ -140,27 +158,6 @@ class Users(models.Model):
         db_table = 'Users'
         verbose_name_plural = 'Users'
 
-
-class AccountsQuestionnaire(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    title = models.CharField(max_length=255)
-    description = models.TextField()
-
-    class Meta:
-        managed = False
-        db_table = 'accounts_questionnaire'
-
-
-class AccountsResponse(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    answer_data = models.JSONField()
-    submitted_at = models.DateTimeField()
-    questionnaire = models.ForeignKey(AccountsQuestionnaire, models.DO_NOTHING)
-    user = models.ForeignKey('AccountsUser', models.DO_NOTHING)
-
-    class Meta:
-        managed = False
-        db_table = 'accounts_response'
 
 
 class AccountsUser(models.Model):
@@ -180,28 +177,6 @@ class AccountsUser(models.Model):
     class Meta:
         managed = False
         db_table = 'accounts_user'
-
-
-class AccountsUserGroups(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(AccountsUser, models.DO_NOTHING)
-    group = models.ForeignKey('AuthGroup', models.DO_NOTHING)
-
-    class Meta:
-        managed = False
-        db_table = 'accounts_user_groups'
-        unique_together = (('user', 'group'),)
-
-
-class AccountsUserUserPermissions(models.Model):
-    id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(AccountsUser, models.DO_NOTHING)
-    permission = models.ForeignKey('AuthPermission', models.DO_NOTHING)
-
-    class Meta:
-        managed = False
-        db_table = 'accounts_user_user_permissions'
-        unique_together = (('user', 'permission'),)
 
 
 class AuthGroup(models.Model):
@@ -241,7 +216,7 @@ class DjangoAdminLog(models.Model):
     action_flag = models.PositiveSmallIntegerField()
     change_message = models.TextField()
     content_type = models.ForeignKey('DjangoContentType', models.DO_NOTHING, blank=True, null=True)
-    user = models.ForeignKey(AccountsUser, models.DO_NOTHING)
+    user = models.ForeignKey('AccountsUser', models.DO_NOTHING)
 
     class Meta:
         managed = False
