@@ -17,11 +17,13 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from accounts.views import home_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('', include('users.urls')),  # Hook into users app
-   # path("", home),  
+   # path("", home), 
+    path('', home_view, name='home'), 
     path('', include('accounts.urls')),
 
 ]
