@@ -32,7 +32,10 @@
     mobileNavToggleBtn.classList.toggle('bi-list');
     mobileNavToggleBtn.classList.toggle('bi-x');
   }
+//  Added this null check
+if (mobileNavToggleBtn) {
   mobileNavToggleBtn.addEventListener('click', mobileNavToogle);
+}
 
   /**
    * Hide mobile nav on same-page/hash links
