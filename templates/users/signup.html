@@ -133,17 +133,14 @@ data-bs-target="#navbarNav"
 
             <div class="collapse navbar-collapse" id="navbarNav">
                <ul class="navbar-nav ms-auto">
-                  <li class="nav-item"><a class="nav-link" href="{% url 'starter-page' 
-%}">Home</a></li>
-                  <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
-                  <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{% url 'starter-page' %}">Home</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{% url 'starter-page' %}#about">About</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{% url 'starter-page' %}#contact">Contact</a></li>
 
                   <!-- Only show login/signup if user is NOT logged in -->
                   {% if not user.is_authenticated %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'login' 
-%}">Login</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="{% url 'signup' 
-%}">Signup</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="{% url 'signup' %}">Signup</a></li>
                   {% endif %}
 
                   <li class="nav-item">

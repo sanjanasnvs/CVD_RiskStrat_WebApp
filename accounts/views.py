@@ -95,3 +95,6 @@ def signup_view(request):
 # Create your views here.
 def home_view(request):
     return render(request, 'medilab/starter-page.html')
+
+def request_access_view(request):
+    return render(request, 'users/request-access.html')
