@@ -57,10 +57,13 @@ CREATE TABLE Questionnaire (
     question_id INT AUTO_INCREMENT PRIMARY KEY,
     question_text TEXT NOT NULL,
     category VARCHAR(100),
+    subcategory VARCHAR(100),
+    dependencies INT,
     dependencies TEXT,
     question_order INT DEFAULT 0,
     admin_id INT,
     FOREIGN KEY (admin_id) REFERENCES Admins(admin_id) ON DELETE SET NULL
+    FOREIGN KEY (dependencies) REFERENCES Questionnaire(question_id) ON DELETE SET NULL
 );
 
 -- Responses Table
