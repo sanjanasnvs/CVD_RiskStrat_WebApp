@@ -1,10 +1,10 @@
 from django.contrib import admin
-from .legacy_models import (
+from .models import (
     Patients,
     Clinicians,
     Admins,
     CVD_risk_Clinician_Patient,
-    Users,
+    User,
     CVD_risk_Questionnaire,
     CVD_risk_QuestionResponseOptions,
     CVD_risk_Responses,
@@ -21,7 +21,7 @@ admin.site.register(Patients)
 admin.site.register(Clinicians)
 admin.site.register(Admins)
 admin.site.register(CVD_risk_Clinician_Patient)
-admin.site.register(Users)
+admin.site.register(User)
 admin.site.register(CVD_risk_Questionnaire)
 admin.site.register(CVD_risk_QuestionResponseOptions)
 admin.site.register(CVD_risk_Responses)

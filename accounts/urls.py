@@ -31,5 +31,11 @@ name='password_reset_complete'),
     path('admin/login/', views.admin_login_view, name='admin_login'),
     path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
 
+    # Patient views URLs
+    path('patient/dashboard/', views.patient_dashboard, name='patient_dashboard'),
+    path('patient/assessment/', views.start_assessment, name='start_assessment'),
+    path('patient/results/', views.patient_results, name='patient_results'),
+    path('patient/history/', views.assessment_history, name='assessment_history'),
+]
 ]
 

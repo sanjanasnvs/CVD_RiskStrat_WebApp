@@ -88,6 +88,11 @@
         	    <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
            	    <li class="nav-item"><a class="nav-link" href="{% url 'signup' %}">Signup</a></li>
 	          {% endif %}
+		
+	  <!-- Only show CVD Risk For Patents  if user IS logged in as a Patient -->	
+		  {% if user.is_authenticated and user.role == 'patient' %}
+		    <li><a href="{% url 'patient_dashboard' %}">CVD Risk for Patients</a></li>
+		  {% endif %}
 
 		  <li class="nav-item">
 		     <a class="nav-link" href="{% url 'request_access' %}" style="color:white; background:#1977cc; border-radius:50px; padding: 8px 20px; margin-left: 10px;">Request Access
