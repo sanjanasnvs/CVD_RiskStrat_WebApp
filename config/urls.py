@@ -25,5 +25,4 @@ urlpatterns = [
    # path("", home), 
     path('', home_view, name='home'), 
     path('', include('accounts.urls')),
-
 ]

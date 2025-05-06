@@ -5,7 +5,7 @@ from django.shortcuts import redirect
 from django.contrib import messages
 from .models import User
 from .forms import CustomUserCreationForm
-from .legacy_models import *
+from .models import *
 
 
 def login_view(request):
@@ -63,9 +63,42 @@ def role_based_dashboard_redirect(request):
     else:
         return redirect('/admin/')
 
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from .models import Patients, CVD_risk_Questionnaire, CVD_risk_Responses, 
+CVD_risk_Patient_Outcomes
+
 @login_required
 def patient_dashboard(request):
-    return render(request, 'accounts/patient_dashboard.html')
+    if request.user.role != 'patient':
+        return redirect('home')  # or show a 403
+    # Fetch the patient profile for this user
+    patient_profile = get_object_or_404(Patients, user=request.user)
+
+    context = {
+        'patient': patient_profile
+    }
+    return render(request, 'patients/dashboard.html')
+	
+@login_required
+def start_assessment(request):
+    # placeholder for questionnaire logic
+    if request.user.role != 'patient':
+        return redirect('home')
+    return render(request, 'patients/assessment.html')
+
+@login_required
+def patient_results(request):
+    # fetch latest result for the patient
+    if request.user.role != 'patient':
+        return redirect('home')
+    return render(request, 'patients/results.html')
+
+@login_required
+def assessment_history(request):
+    if request.user.role != 'patient':
+        return redirect('home')
+    return render(request, 'patients/history.html')
 
 @login_required
 def clinician_dashboard(request):
