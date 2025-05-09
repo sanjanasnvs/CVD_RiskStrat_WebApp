@@ -36,6 +36,8 @@ name='password_reset_complete'),
     path('patient/assessment/', views.start_assessment, name='start_assessment'),
     path('patient/results/', views.patient_results, name='patient_results'),
     path('patient/history/', views.assessment_history, name='assessment_history'),
-]
+    path('patient/learn/', views.patient_learn, name='patient_learn'),
+
+
 ]
 

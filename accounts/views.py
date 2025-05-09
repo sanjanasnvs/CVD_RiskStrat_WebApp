@@ -65,8 +65,7 @@ def role_based_dashboard_redirect(request):
 
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from .models import Patients, CVD_risk_Questionnaire, CVD_risk_Responses, 
-CVD_risk_Patient_Outcomes
+from .models import Patients, CVD_risk_Questionnaire, CVD_risk_Responses, CVD_risk_Patient_Outcomes
 
 @login_required
 def patient_dashboard(request):
@@ -99,6 +98,10 @@ def assessment_history(request):
     if request.user.role != 'patient':
         return redirect('home')
     return render(request, 'patients/history.html')
+
+@login_required
+def patient_learn(request):
+    return render(request, 'learn.html')
 
 @login_required
 def clinician_dashboard(request):

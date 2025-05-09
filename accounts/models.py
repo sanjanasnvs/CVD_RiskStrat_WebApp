@@ -9,9 +9,18 @@ class User(AbstractUser):
         ('admin', 'Admin'),
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
+    @property
+    def is_patient(self):
+        return self.role == 'patient'
+    
+    @property
+    def is_clinician(self):
+        return self.role == 'clinician'
 
-    def __str__(self):
-        return self.username
+    @property
+    def is_admin(self):
+        return self.role == 'admin'
+ 
 
 class Admins(models.Model):
     admin_id = models.AutoField(primary_key=True)
