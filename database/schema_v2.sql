@@ -53,8 +53,7 @@ CREATE TABLE CVD_risk_Questionnaire (
     subcategory VARCHAR(100),
     dependencies INT,
     question_order INT DEFAULT 0,
-    FOREIGN KEY (dependencies) REFERENCES CVD_risk_Questionnaire(question_id) ON DELETE SET 
-NULL
+    FOREIGN KEY (dependencies) REFERENCES CVD_risk_Questionnaire(question_id) ON DELETE SET NULL
 );
 
 -- Questionnaire Response Options
