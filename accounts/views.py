@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect
 from django.contrib import messages
-from .models import User
+from .models import Users
 from .forms import CustomUserCreationForm
 from .models import *
 

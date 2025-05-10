@@ -2,9 +2,8 @@ from django.contrib import admin
 from .models import (
     Patients,
     Clinicians,
-    Admins,
     CVD_risk_Clinician_Patient,
-    User,
+    Users,
     CVD_risk_Questionnaire,
     CVD_risk_QuestionResponseOptions,
     CVD_risk_Responses,
@@ -19,9 +18,8 @@ from .models import (
 
 admin.site.register(Patients)
 admin.site.register(Clinicians)
-admin.site.register(Admins)
 admin.site.register(CVD_risk_Clinician_Patient)
-admin.site.register(User)
+admin.site.register(Users)
 admin.site.register(CVD_risk_Questionnaire)
 admin.site.register(CVD_risk_QuestionResponseOptions)
 admin.site.register(CVD_risk_Responses)

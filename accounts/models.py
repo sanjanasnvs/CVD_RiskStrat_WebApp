@@ -1,70 +1,50 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 
 
-class User(AbstractUser):
-    ROLE_CHOICES = (
-        ('patient', 'Patient'),
-        ('clinician', 'Clinician'),
-        ('admin', 'Admin'),
-    )
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='patient')
-    @property
-    def is_patient(self):
-        return self.role == 'patient'
-    
-    @property
-    def is_clinician(self):
-        return self.role == 'clinician'
-
-    @property
-    def is_admin(self):
-        return self.role == 'admin'
- 
-
-class Admins(models.Model):
-    admin_id = models.AutoField(primary_key=True)
+class Users(AbstractUser):
+    user_id = models.AutoField(primary_key=True)
+    email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
-    email = models.CharField(max_length=100, unique=True)
-    password_hash = models.CharField(max_length=255)
-    role = models.CharField(max_length=20)
-    created_at = models.DateTimeField(auto_now_add=True)
+    role = models.CharField(
+        max_length=20,
+        choices=[
+            ('patient', 'Patient'),
+            ('clinician_pending', 'Clinician Pending'),
+            ('clinician_approved', 'Clinician Approved')
+        ]
+    )
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     class Meta:
-        db_table = 'Admins'
+        db_table = 'Users'
+        verbose_name_plural = 'Users'
 
 
 class Patients(models.Model):
     patient_id = models.AutoField(primary_key=True)
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
-    email = models.CharField(max_length=100, unique=True)
-    password_hash = models.CharField(max_length=255)
+    user = models.OneToOneField(Users, on_delete=models.CASCADE)
     date_of_birth = models.DateField(null=True, blank=True)
-    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), 
-('Other', 'Other')], null=True)
+    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')])
     created_at = models.DateTimeField(auto_now_add=True)
-    admin = models.ForeignKey(Admins, on_delete=models.SET_NULL, null=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'Patients'
+        verbose_name_plural = 'Patients'
 
 
 class Clinicians(models.Model):
     clinician_id = models.AutoField(primary_key=True)
-    first_name = models.CharField(max_length=50)
-    last_name = models.CharField(max_length=50)
-    email = models.CharField(max_length=100, unique=True)
-    password_hash = models.CharField(max_length=255)
+    user = models.OneToOneField(Users, on_delete=models.CASCADE)
     specialty = models.CharField(max_length=100, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
-    admin = models.ForeignKey(Admins, on_delete=models.SET_NULL, null=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
 
     class Meta:
         db_table = 'Clinicians'
+        verbose_name_plural = 'Clinicians'
 
 
 class CVD_risk_Questionnaire(models.Model):
@@ -74,10 +54,10 @@ class CVD_risk_Questionnaire(models.Model):
     subcategory = models.CharField(max_length=100, null=True, blank=True)
     dependencies = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL)
     question_order = models.IntegerField(default=0)
-    admin = models.ForeignKey(Admins, on_delete=models.SET_NULL, null=True)
 
     class Meta:
         db_table = 'CVD_risk_Questionnaire'
+        verbose_name_plural = 'CVD Risk Questionnaire'
 
 
 class CVD_risk_QuestionResponseOptions(models.Model):
@@ -90,6 +70,7 @@ class CVD_risk_QuestionResponseOptions(models.Model):
 
     class Meta:
         db_table = 'CVD_risk_QuestionResponseOptions'
+        verbose_name_plural = 'Questionnaire Response Options'
 
 
 class CVD_risk_Responses(models.Model):
@@ -105,6 +86,7 @@ on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         db_table = 'CVD_risk_Responses'
+        verbose_name_plural = 'CVD Risk Responses'
 
 
 class CVD_risk_Clinician_Patient(models.Model):
@@ -115,6 +97,7 @@ class CVD_risk_Clinician_Patient(models.Model):
     class Meta:
         db_table = 'CVD_risk_Clinician_Patient'
         unique_together = (('clinician', 'patient'),)
+        verbose_name_plural = 'Clinician Patients'
 
 
 class ML_Models(models.Model):
@@ -124,6 +107,7 @@ class ML_Models(models.Model):
 
     class Meta:
         db_table = 'ML_Models'
+        verbose_name_plural = 'ML Models'
 
 
 class batch_CVD_Risk_Features(models.Model):
@@ -133,6 +117,7 @@ class batch_CVD_Risk_Features(models.Model):
 
     class Meta:
         db_table = 'batch_CVD_Risk_Features'
+        verbose_name_plural = 'Batch CVD Risk Features'
 
 
 class batch_CVD_Risk_Model_Features(models.Model):
@@ -142,6 +127,7 @@ class batch_CVD_Risk_Model_Features(models.Model):
     class Meta:
         db_table = 'batch_CVD_Risk_Model_Features'
         unique_together = (('model', 'feature'),)
+        verbose_name_plural = 'Batch CVD Risk Model Features'
 
 
 class Risk_Stratification(models.Model):
@@ -154,6 +140,7 @@ class Risk_Stratification(models.Model):
 
     class Meta:
         db_table = 'Risk_Stratification'
+        verbose_name_plural = 'Risk Stratification'
 
 
 class CVD_risk_Patient_Outcomes(models.Model):
@@ -164,6 +151,7 @@ class CVD_risk_Patient_Outcomes(models.Model):
 
     class Meta:
         db_table = 'CVD_risk_Patient_Outcomes'
+        verbose_name_plural = 'CVD Risk Patient Outcomes'
 
 
 class batch_CVD_Risk_Risk(models.Model):
@@ -175,6 +163,7 @@ class batch_CVD_Risk_Risk(models.Model):
 
     class Meta:
         db_table = 'batch_CVD_Risk_Risk'
+        verbose_name_plural = 'Batch CVD Risk Risk'
 
 
 class batch_CVD_Risk_Output(models.Model):
@@ -185,4 +174,5 @@ class batch_CVD_Risk_Output(models.Model):
 
     class Meta:
         db_table = 'batch_CVD_Risk_Output'
+        verbose_name_plural = 'Batch CVD Risk Output'
 
