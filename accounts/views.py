@@ -80,12 +80,69 @@ def patient_dashboard(request):
     return render(request, 'patients/dashboard.html')
 	
 @login_required
-def start_assessment(request):
-    # placeholder for questionnaire logic
-    if request.user.role != 'patient':
-        return redirect('home')
-    return render(request, 'patients/assessment.html')
+from django.shortcuts import render, redirect
+from accounts.models import CVD_risk_Questionnaire, CVD_risk_QuestionResponseOptions, 
+CVD_risk_Responses
+from django.contrib.auth.decorators import login_required
 
+@login_required
+def assessment_view(request):
+    # Get category from URL, default to first one
+    category = request.GET.get('category', None)
+
+    # Get all unique categories
+    all_categories = 
+CVD_risk_Questionnaire.objects.order_by('question_order').values_list('category', 
+flat=True).distinct()
+
+    # Default to first if not provided
+    if not category:
+        return redirect(f'/assessment/?category={all_categories[0]}')
+
+    # Load questions for this category
+    questions = 
+CVD_risk_Questionnaire.objects.filter(category=category).order_by('question_order')
+
+    if request.method == 'POST':
+        # Save responses
+        for q in questions:
+            key = f"question_{q.question_id}"
+            value = request.POST.get(key)
+
+            if value:  # Skip unanswered
+                CVD_risk_Responses.objects.update_or_create(
+                    user=request.user,
+                    question=q,
+                    defaults={'response': value}
+                )
+
+        # Go to next category or finish
+        next_cat = get_next_category(all_categories, category)
+        if next_cat:
+            return redirect(f'/assessment/?category={next_cat}')
+        else:
+            return redirect('/thank-you/')  # Change as needed
+
+    # Build question + options list
+    question_data = []
+    for q in questions:
+        options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
+        question_data.append({'question': q, 'options': options})
+
+    return render(request, 'assessment.html', {
+        'category': category,
+        'question_data': question_data,
+        'all_categories': all_categories,
+    })
+
+def get_next_category(category_list, current):
+    category_list = list(category_list)
+    try:
+        idx = category_list.index(current)
+        return category_list[idx + 1] if idx + 1 < len(category_list) else None
+    except ValueError:
+        return None
+ 
 @login_required
 def patient_results(request):
     # fetch latest result for the patient
