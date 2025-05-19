@@ -4,49 +4,86 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from accounts.models import CVD_risk_Questionnaire, CVD_risk_QuestionResponseOptions
 
-
+# Define file locations
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATA_DIR = os.path.join(settings.BASE_DIR, 'Questionnaire_data')
 QUESTIONS_FILE = os.path.join(DATA_DIR, 'TS_mapping_with_questions_v1.xlsx')
+DEPENDENCIES_FILE = os.path.join(DATA_DIR, 'TS_advanced_mapping_v2 (1).xlsx')
+
 
 class Command(BaseCommand):
-    help = 'Load questionnaire questions and options into the database'
+    help = 'Load questions with category, subcategory, and dependencies into CVD_risk_Questionnaire table.'
 
     def handle(self, *args, **kwargs):
-        df = pd.read_excel(QUESTIONS_FILE)
+        # Load both Excel files
+        print("Loading Excel files...")
+        mapping_df = pd.read_excel('Questionnaire_data/TS_mapping_with_questions_v1.xlsx')
+        advanced_df = pd.read_excel('Questionnaire_data/TS_advanced_mapping_v2 (1).xlsx')
 
-        created_questions = 0
-        skipped_rows = 0
+        # Clean headers
+        mapping_df.columns = mapping_df.columns.str.strip()
+        advanced_df.columns = advanced_df.columns.str.strip()
 
-        for _, row in df.iterrows():
-            question_text = row.get('Question Stem')
-            column_name = row.get('Column names')
-            response_type = str(row.get('Select one/Toggle multiple/Enter integer answer', '')).lower()
-            data_type = str(row.get('Data type', '')).lower()
-            category = row.get('Category', None)
-            subcategory = row.get('Sub-category', None)
+        # Merge both files on 'Field.ID'
+        print("Merging data sources...")
+        merged_df = pd.merge(mapping_df, advanced_df, how='left', left_on='Field ID', right_on='Field.ID')
 
-            if pd.isna(question_text):
-                skipped_rows += 1
+        # Step 1: Load base questions
+        print("Creating base questions with category/subcategory...")
+        CVD_risk_Questionnaire.objects.all().delete()  # Optional: clear table before reloading
+
+        imported, skipped = 0, 0
+        for _, row in merged_df.iterrows():
+            question_text = row.get('Question')
+            question_order = row.get('Question No')
+
+            if pd.isna(question_text) or pd.isna(question_order):
+                skipped += 1
                 continue
 
-            question = CVD_risk_Questionnaire.objects.create(
+            try:
+                question_order = int(float(question_order))
+            except ValueError:
+                skipped += 1
+                continue
+
+            category = row.get('Category')
+            subcategory = row.get('Sub.category')
+
+            CVD_risk_Questionnaire.objects.create(
                 question_text=question_text.strip(),
-                category=category,
-                subcategory=subcategory,
-                question_order=int(row.name) + 1
+                question_order=question_order,
+                category=category.strip() if isinstance(category, str) else None,
+                subcategory=subcategory.strip() if isinstance(subcategory, str) else None
             )
-            created_questions += 1
+            imported += 1
 
-            if data_type in ['categorical', 'binary'] and not pd.isna(row.get('Full Answer')):
-                answers = str(row['Full Answer']).split(';')
-                for ans in answers:
-                    CVD_risk_QuestionResponseOptions.objects.create(
-                        question=question,
-                        option_text=ans.strip()
-                    )
+        print(f" Imported {imported} questions. Skipped {skipped} blank or invalid rows.")
 
-        self.stdout.write(self.style.SUCCESS(
-            f'Imported {created_questions} questions. Skipped {skipped_rows} blank rows.'
-        ))
+        # Step 2: Populate dependencies
+        print("Updating dependency fields...")
+        updated = 0
+        for _, row in advanced_df.iterrows():
+            raw_qid = row.get('Field.ID')
+            try:
+                question_order = int(float(raw_qid))
+            except (TypeError, ValueError):
+                continue
+
+            try:
+                q = CVD_risk_Questionnaire.objects.get(question_order=question_order)
+            except CVD_risk_Questionnaire.DoesNotExist:
+                continue
+
+            deps = []
+            for dep_col in ['Determined.by', 'Or.determined.by', 'And.determined.by']:
+                ids = row.get(dep_col)
+                if isinstance(ids, str):
+                    deps.extend([d.strip() for d in ids.split(',') if d.strip().lstrip('-').isdigit()])
+
+            q.dependencies = ",".join(deps) if deps else None
+            q.save()
+            updated += 1
+
+        print(f" Updated {updated} questions with dependencies.")
 
