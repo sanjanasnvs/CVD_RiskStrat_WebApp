@@ -90,14 +90,27 @@ def assessment_view(request):
     # Get category from URL, default to first one
     category = request.GET.get('category', None)
 
-    # Get all unique categories
+    # Get all unique categories ordered by their logical sequence
     all_categories = 
-CVD_risk_Questionnaire.objects.order_by('question_order').values_list('category', 
-flat=True).distinct()
+list(CVD_risk_Questionnaire.objects.order_by('question_order').values_list('category', 
+flat=True).distinct())
 
     # Default to first if not provided
     if not category:
         return redirect(f'/assessment/?category={all_categories[0]}')
+
+    # Get completed categories from session
+    completed_categories = request.session.get('completed_categories', [])
+    
+    # Find previous and next categories for navigation
+    try:
+        current_index = all_categories.index(category)
+        previous_category = all_categories[current_index - 1] if current_index > 0 else None
+        next_category = all_categories[current_index + 1] if current_index + 1 < 
+len(all_categories) else None
+    except ValueError:
+        previous_category = None
+        next_category = None
 
     # Load questions for this category
     questions = 
@@ -105,38 +118,87 @@ CVD_risk_Questionnaire.objects.filter(category=category).order_by('question_orde
 
     if request.method == 'POST':
         # Save responses
+        all_valid = True
         for q in questions:
             key = f"question_{q.question_id}"
             value = request.POST.get(key)
 
-            if value:  # Skip unanswered
+            if not value and q.required:  # Check if required question is answered
+                all_valid = False
+                break
+
+            if value:  # Skip unanswered optional questions
                 CVD_risk_Responses.objects.update_or_create(
                     user=request.user,
                     question=q,
                     defaults={'response': value}
                 )
 
-        # Go to next category or finish
-        next_cat = get_next_category(all_categories, category)
-        if next_cat:
-            return redirect(f'/assessment/?category={next_cat}')
+        if all_valid:
+            # Mark this category as completed
+            if category not in completed_categories:
+                completed_categories.append(category)
+                request.session['completed_categories'] = completed_categories
+            
+            # Go to next category or finish
+            if next_category:
+                return redirect(f'/assessment/?category={next_category}')
+            else:
+                # Clear completed categories from session when assessment is complete
+                request.session['completed_categories'] = []
+                return redirect('/results/')  # Redirect to results page
         else:
-            return redirect('/thank-you/')  # Change as needed
+            # If validation fails, stay on current page with error message
+            error_message = "Please answer all required questions."
+            # Build question + options list
+            question_data = []
+            for q in questions:
+                options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
+                # Get saved response if any
+                saved_response = CVD_risk_Responses.objects.filter(user=request.user, 
+question=q).first()
+                response_value = saved_response.response if saved_response else None
+                question_data.append({
+                    'question': q, 
+                    'options': options,
+                    'response': response_value
+                })
+            
+            return render(request, 'assessment.html', {
+                'category': category,
+                'question_data': question_data,
+                'all_categories': all_categories,
+                'completed_categories': completed_categories,
+                'previous_category': previous_category,
+                'next_category': next_category,
+                'error_message': error_message
+            })
 
-    # Build question + options list
+    # Build question + options list with any saved responses
     question_data = []
     for q in questions:
         options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
-        question_data.append({'question': q, 'options': options})
+        # Get saved response if any
+        saved_response = CVD_risk_Responses.objects.filter(user=request.user, 
+question=q).first()
+        response_value = saved_response.response if saved_response else None
+        question_data.append({
+            'question': q, 
+            'options': options,
+            'response': response_value
+        })
 
     return render(request, 'assessment.html', {
         'category': category,
         'question_data': question_data,
         'all_categories': all_categories,
+        'completed_categories': completed_categories,
+        'previous_category': previous_category,
+        'next_category': next_category
     })
 
 def get_next_category(category_list, current):
-    category_list = list(category_list)
+    """Helper function to get the next category in the list"""
     try:
         idx = category_list.index(current)
         return category_list[idx + 1] if idx + 1 < len(category_list) else None
