@@ -27,7 +27,7 @@ SECRET_KEY = "django-insecure-qlpex**)z!zh*qya#mp+_93^w+!s-$9^pyr&+b67^nj55yyt)(
 DEBUG = True
 
 ALLOWED_HOSTS = []
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = 'accounts.Users'
 
 
 # Application definition
@@ -79,7 +79,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "CVD_RiskDB",
+        "NAME": "CVD_Risk",
 	"USER": "root",
 	"PASSWORD": "Llama123@",
 	"HOST": "localhost",
