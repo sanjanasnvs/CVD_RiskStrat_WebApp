@@ -79,10 +79,8 @@ def patient_dashboard(request):
     }
     return render(request, 'patients/dashboard.html')
 	
-@login_required
 from django.shortcuts import render, redirect
-from accounts.models import CVD_risk_Questionnaire, CVD_risk_QuestionResponseOptions, 
-CVD_risk_Responses
+from accounts.models import CVD_risk_Questionnaire, CVD_risk_QuestionResponseOptions, CVD_risk_Responses
 from django.contrib.auth.decorators import login_required
 
 @login_required
@@ -91,9 +89,7 @@ def assessment_view(request):
     category = request.GET.get('category', None)
 
     # Get all unique categories ordered by their logical sequence
-    all_categories = 
-list(CVD_risk_Questionnaire.objects.order_by('question_order').values_list('category', 
-flat=True).distinct())
+    all_categories = list(CVD_risk_Questionnaire.objects.order_by('question_order').values_list('category', flat=True).distinct())
 
     # Default to first if not provided
     if not category:
@@ -106,15 +102,13 @@ flat=True).distinct())
     try:
         current_index = all_categories.index(category)
         previous_category = all_categories[current_index - 1] if current_index > 0 else None
-        next_category = all_categories[current_index + 1] if current_index + 1 < 
-len(all_categories) else None
+        next_category = all_categories[current_index + 1] if current_index + 1 < len(all_categories) else None    
     except ValueError:
         previous_category = None
         next_category = None
 
     # Load questions for this category
-    questions = 
-CVD_risk_Questionnaire.objects.filter(category=category).order_by('question_order')
+    questions = CVD_risk_Questionnaire.objects.filter(category=category).order_by('question_order')
 
     if request.method == 'POST':
         # Save responses
@@ -155,8 +149,7 @@ CVD_risk_Questionnaire.objects.filter(category=category).order_by('question_orde
             for q in questions:
                 options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
                 # Get saved response if any
-                saved_response = CVD_risk_Responses.objects.filter(user=request.user, 
-question=q).first()
+                saved_response = CVD_risk_Responses.objects.filter(user=request.user, question=q).first()
                 response_value = saved_response.response if saved_response else None
                 question_data.append({
                     'question': q, 
@@ -179,8 +172,7 @@ question=q).first()
     for q in questions:
         options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
         # Get saved response if any
-        saved_response = CVD_risk_Responses.objects.filter(user=request.user, 
-question=q).first()
+        saved_response = CVD_risk_Responses.objects.filter(user=request.user, question=q).first()
         response_value = saved_response.response if saved_response else None
         question_data.append({
             'question': q, 
@@ -235,6 +227,8 @@ def signup_view(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            print("User created:", user)
+            print("Role:", user.role)
             login(request, user)
             if user.role == 'patient':
                 return redirect('patient_dashboard')
