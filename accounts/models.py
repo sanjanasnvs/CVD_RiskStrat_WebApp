@@ -59,7 +59,7 @@ class Patients(models.Model):
     patient_id = models.AutoField(primary_key=True)
     user = models.OneToOneField(Users, on_delete=models.CASCADE)
     date_of_birth = models.DateField(null=True, blank=True)
-    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')])
+    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], null = True, blank = True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -85,6 +85,12 @@ class CVD_risk_Questionnaire(models.Model):
     subcategory = models.CharField(max_length=100, null=True, blank=True)
     dependencies = models.ManyToManyField('self', symmetrical=False, blank=True)
     question_order = models.IntegerField(default=0)
+    QUESTION_TYPE_CHOICES = [
+    ('Option', 'Option'),
+    ('Numeric', 'Numeric'),
+    ('Boolean', 'Boolean'),
+]
+    question_type = models.CharField(max_length=50, choices=QUESTION_TYPE_CHOICES,default='Option')   
 
     class Meta:
         db_table = 'CVD_risk_Questionnaire'
@@ -111,8 +117,7 @@ class CVD_risk_Responses(models.Model):
     response_type = models.CharField(max_length=50)
     numeric_response = models.FloatField(null=True, blank=True)
     boolean_response = models.BooleanField(null=True, blank=True)
-    option_selected = models.ForeignKey(CVD_risk_QuestionResponseOptions, 
-on_delete=models.SET_NULL, null=True, blank=True)
+    option_selected = models.ForeignKey(CVD_risk_QuestionResponseOptions, on_delete=models.SET_NULL, null=True, blank=True)
     response_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:

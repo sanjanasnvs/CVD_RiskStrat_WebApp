@@ -16,22 +16,15 @@
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link 
-href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" 
-rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
 
   <!-- Vendor CSS Files -->
-  <link href="{% static 'medilab/assets/vendor/bootstrap/css/bootstrap.min.css' %}" 
-rel="stylesheet">
-  <link href="{% static 'medilab/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" 
-rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
   <link href="{% static 'medilab/assets/vendor/aos/aos.css' %}" rel="stylesheet">
-  <link href="{% static 'medilab/assets/vendor/fontawesome-free/css/all.min.css' %}" 
-rel="stylesheet">
-  <link href="{% static 'medilab/assets/vendor/glightbox/css/glightbox.min.css' %}" 
-rel="stylesheet">
-  <link href="{% static 'medilab/assets/vendor/swiper/swiper-bundle.min.css' %}" 
-rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
 
   <!-- Main CSS File -->
   <link href="{% static 'medilab/assets/css/main.css' %}" rel="stylesheet">
@@ -100,10 +93,8 @@ rel="stylesheet">
     <div class="topbar d-flex align-items-center">
       <div class="container d-flex justify-content-center justify-content-md-between">
         <div class="contact-info d-flex align-items-center">
-          <i class="bi bi-envelope d-flex align-items-center"><a 
-href="mailto:contact@example.com">contact@example.com</a></i>
-          <i class="bi bi-phone d-flex align-items-center ms-4"><span>+1 5589 55488 
-55</span></i>
+          <i class="bi bi-envelope d-flex align-items-center"><a href="mailto:contact@example.com">contact@example.com</a></i>
+          <i class="bi bi-phone d-flex align-items-center ms-4"><span>+1 5589 55488 55</span></i>
         </div>
         <div class="social-links d-none d-md-flex align-items-center">
           <a href="#" class="twitter"><i class="bi bi-twitter-x"></i></a>
@@ -115,8 +106,7 @@ href="mailto:contact@example.com">contact@example.com</a></i>
     </div><!-- End Top Bar -->
 
     <div class="branding d-flex align-items-center">
-      <div class="container position-relative d-flex align-items-center 
-justify-content-between">
+      <div class="container position-relative d-flex align-items-center justify-content-between">
         <a href="{% url 'starter-page' %}" class="logo d-flex align-items-center me-auto">
           <!-- Uncomment the line below if you also wish to use an image logo -->
           <!-- <img src="{% static 'medilab/assets/img/logo.png' %}" alt=""> -->
@@ -125,8 +115,7 @@ justify-content-between">
 
         <nav id="navmenu" class="navbar navbar-expand-lg navbar-light bg-light">
           <div class="container">
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
-data-bs-target="#navbarNav"
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
               aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
               <span class="navbar-toggler-icon"></span>
             </button>
@@ -144,8 +133,7 @@ data-bs-target="#navbarNav"
                   {% endif %}
 
                   <li class="nav-item">
-                     <a class="nav-link" href="{% url 'request_access' %}" style="color:white; 
-background:#1977cc; border-radius:50px; padding: 8px 20px; margin-left: 10px;">Request Access
+                     <a class="nav-link" href="{% url 'request_access' %}" style="color:white; background:#1977cc; border-radius:50px; padding: 8px 20px; margin-left: 10px;">Request Access
                      </a>
                   </li>
                 </ul>
@@ -165,12 +153,11 @@ background:#1977cc; border-radius:50px; padding: 8px 20px; margin-left: 10px;">R
             <div class="card shadow">
               <div class="card-body p-5">
                 <h2 class="text-center mb-4">Create Your Account</h2>
-                <p class="text-center mb-4">Already have an account? <a href="{% url 'login' 
-%}" class="text-primary">Login here</a>.</p>
+                <p class="text-center mb-4">Already have an account? <a href="{% url 'login' %}" class="text-primary">Login here</a>.</p>
                 
                 <form method="POST" class="signup-form">
                   {% csrf_token %}
-                  
+
                   <!-- User Type Selection -->
                   <div class="user-type-selector mb-4">
                     <input type="radio" name="user_type" id="patient" value="patient" checked>
@@ -187,38 +174,33 @@ background:#1977cc; border-radius:50px; padding: 8px 20px; margin-left: 10px;">R
                   <div class="row mb-3">
                     <div class="col-md-6 mb-3 mb-md-0">
                       <label for="first_name" class="form-label">First Name</label>
-                      <input type="text" class="form-control" id="first_name" name="first_name" 
-required>
+                      <input type="text" class="form-control" id="first_name" name="first_name" required>
                     </div>
                     <div class="col-md-6">
                       <label for="last_name" class="form-label">Last Name</label>
-                      <input type="text" class="form-control" id="last_name" name="last_name" 
-required>
+                      <input type="text" class="form-control" id="last_name" name="last_name" required>
                     </div>
                   </div>
                   
                   <div class="mb-3">
                     <label for="email" class="form-label">Email Address</label>
-                    <input type="email" class="form-control" id="email" name="email" required>
+                    <input type="email" class="form-control" id="id_email" name="email" required>
                     <div class="form-text">We'll never share your email with anyone else.</div>
                   </div>
                   
                   <div class="mb-3">
                     <label for="username" class="form-label">Username</label>
-                    <input type="text" class="form-control" id="username" name="username" 
-required>
+                    <input type="text" class="form-control" id="username" name="username" required>
                   </div>
                   
                   <div class="row mb-3">
                     <div class="col-md-6 mb-3 mb-md-0">
                       <label for="password" class="form-label">Password</label>
-                      <input type="password" class="form-control" id="password" name="password" 
-required>
+                      <input type="password" class="form-control" id="id_password1" name="password1" required>
                     </div>
                     <div class="col-md-6">
                       <label for="confirm_password" class="form-label">Confirm Password</label>
-                      <input type="password" class="form-control" id="confirm_password" 
-name="confirm_password" required>
+                      <input type="password" class="form-control" id="id_password2" name="password2" required>
                     </div>
                   </div>
                   
@@ -228,10 +210,8 @@ name="confirm_password" required>
                     <h5 class="mb-3">Clinician Information</h5>
                     
                     <div class="mb-3">
-                      <label for="medical_license" class="form-label">Medical License 
-Number</label>
-                      <input type="text" class="form-control" id="medical_license" 
-name="medical_license">
+                      <label for="medical_license" class="form-label">Medical License Number</label>
+                      <input type="text" class="form-control" id="medical_license" name="medical_license">
                     </div>
                     
                     <div class="mb-3">
@@ -248,24 +228,20 @@ name="medical_license">
                     
                     <div class="mb-3">
                       <label for="institution" class="form-label">Institution/Practice</label>
-                      <input type="text" class="form-control" id="institution" 
-name="institution">
+                      <input type="text" class="form-control" id="institution" name="institution">
                     </div>
                   </div>
                   
                   <!-- Terms and Privacy Policy -->
                   <div class="mb-4 form-check">
-                    <input type="checkbox" class="form-check-input" id="terms" name="terms" 
-required>
+                    <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
                     <label class="form-check-label" for="terms">
-                      I agree to the <a href="#" class="text-primary">Terms of Service</a> and 
-<a href="#" class="text-primary">Privacy Policy</a>
+                      I agree to the <a href="#" class="text-primary">Terms of Service</a> and <a href="#" class="text-primary">Privacy Policy</a>
                     </label>
                   </div>
                   
                   <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary btn-lg">Create 
-Account</button>
+                    <button type="submit" class="btn btn-primary btn-lg">Create Account</button>
                   </div>
                 </form>
                 
@@ -303,13 +279,11 @@ justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
   <div id="preloader"></div>
 
   <!-- Vendor JS Files -->
-  <script src="{% static 'medilab/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' 
-%}"></script>
+  <script src="{% static 'medilab/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
   <script src="{% static 'medilab/assets/vendor/php-email-form/validate.js' %}"></script>
   <script src="{% static 'medilab/assets/vendor/aos/aos.js' %}"></script>
   <script src="{% static 'medilab/assets/vendor/glightbox/js/glightbox.min.js' %}"></script>
-  <script src="{% static 'medilab/assets/vendor/purecounter/purecounter_vanilla.js' 
-%}"></script>
+  <script src="{% static 'medilab/assets/vendor/purecounter/purecounter_vanilla.js' %}"></script>
   <script src="{% static 'medilab/assets/vendor/swiper/swiper-bundle.min.js' %}"></script>
 
   <!-- Main JS File -->

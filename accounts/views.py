@@ -6,6 +6,7 @@ from django.contrib import messages
 from .models import Users
 from .forms import CustomUserCreationForm
 from .models import *
+from django.shortcuts import get_object_or_404
 
 
 def login_view(request):
@@ -82,6 +83,8 @@ def patient_dashboard(request):
 from django.shortcuts import render, redirect
 from accounts.models import CVD_risk_Questionnaire, CVD_risk_QuestionResponseOptions, CVD_risk_Responses
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
+
 
 @login_required
 def assessment_view(request):
@@ -93,7 +96,7 @@ def assessment_view(request):
 
     # Default to first if not provided
     if not category:
-        return redirect(f'/assessment/?category={all_categories[0]}')
+        return redirect(f"{reverse('start_assessment')}?category={all_categories[0]}")
 
     # Get completed categories from session
     completed_categories = request.session.get('completed_categories', [])
@@ -123,7 +126,8 @@ def assessment_view(request):
 
             if value:  # Skip unanswered optional questions
                 CVD_risk_Responses.objects.update_or_create(
-                    user=request.user,
+                    patient = Patients.objects.get(user=request.user)
+                    patient=patient,
                     question=q,
                     defaults={'response': value}
                 )
@@ -136,11 +140,11 @@ def assessment_view(request):
             
             # Go to next category or finish
             if next_category:
-                return redirect(f'/assessment/?category={next_category}')
+                return redirect(f"{reverse('start_assessment')}?category={next_category}")
             else:
                 # Clear completed categories from session when assessment is complete
                 request.session['completed_categories'] = []
-                return redirect('/results/')  # Redirect to results page
+                return redirect('patient_results')  # Redirect to results page
         else:
             # If validation fails, stay on current page with error message
             error_message = "Please answer all required questions."
@@ -149,7 +153,8 @@ def assessment_view(request):
             for q in questions:
                 options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
                 # Get saved response if any
-                saved_response = CVD_risk_Responses.objects.filter(user=request.user, question=q).first()
+                patient = Patients.objects.get(user=request.user)
+                saved_response = CVD_risk_Responses.objects.filter(patient=patient, question=q).first()
                 response_value = saved_response.response if saved_response else None
                 question_data.append({
                     'question': q, 
@@ -172,7 +177,8 @@ def assessment_view(request):
     for q in questions:
         options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
         # Get saved response if any
-        saved_response = CVD_risk_Responses.objects.filter(user=request.user, question=q).first()
+        patient = Patients.objects.get(user=request.user)
+        saved_response = CVD_risk_Responses.objects.filter(patient=patient, question=q).first()
         response_value = saved_response.response if saved_response else None
         question_data.append({
             'question': q, 
@@ -227,15 +233,16 @@ def signup_view(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            print("User created:", user)
-            print("Role:", user.role)
+            print(" User created:", user)
+            print(" Role:", user.role)
+
+            # Optional: Create patient profile if required
+            Patients.objects.create(user=user)
+
             login(request, user)
-            if user.role == 'patient':
-                return redirect('patient_dashboard')
-            elif user.role == 'clinician':
-                return redirect('clinician_dashboard')
-            else:
-                return redirect('/admin/')
+            return redirect('patient_dashboard')
+        else:
+            print(" Form errors:", form.errors)
     else:
         form = CustomUserCreationForm()
     return render(request, 'users/signup.html', {'form': form})
