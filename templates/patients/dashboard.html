@@ -130,14 +130,11 @@ data-bs-target="#navbarNav"
                     
                     <!-- User dropdown menu -->
                     <li class="nav-item dropdown">
-                      <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" 
-role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                      <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-person-circle me-1"></i>{{ user.username }}
                       </a>
-                      <ul class="dropdown-menu dropdown-menu-end" 
-aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item" href="{% url 'profile' %}">My 
-Profile</a></li>
+                      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                        <li><a class="dropdown-item" href="#">My Profile</a></li> 
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
                       </ul>
@@ -163,7 +160,7 @@ Profile</a></li>
 from your personal dashboard.</p>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
-              <a href="{% url 'patient_assessment' %}" class="btn btn-light btn-lg">Start New 
+              <a href="{% url 'start_assessment' %}" class="btn btn-light btn-lg">Start New 
 Assessment</a>
             </div>
           </div>
@@ -180,7 +177,7 @@ Assessment</a>
                 <h4 class="card-title">New Assessment</h4>
                 <p class="card-text">Start a new cardiovascular risk assessment to evaluate 
 your current health status.</p>
-                <a href="{% url 'patient_assessment' %}" class="btn btn-primary">Start 
+                <a href="{% url 'start_assessment' %}" class="btn btn-primary">Start 
 Assessment</a>
               </div>
             </div>
@@ -209,7 +206,7 @@ and recommendations.</p>
                 <h4 class="card-title">Assessment History</h4>
                 <p class="card-text">Review your past assessments and track changes in your 
 cardiovascular health over time.</p>
-                <a href="{% url 'patient_history' %}" class="btn btn-primary">View History</a>
+                <a href="#" class="btn btn-primary">View History</a>
               </div>
             </div>
           </div>
@@ -223,7 +220,7 @@ cardiovascular health over time.</p>
                 <h4 class="card-title">Learn More</h4>
                 <p class="card-text">Understand cardiovascular risk factors and learn how to 
 improve your heart health.</p>
-                <a href="{% url 'patient_learn' %}" class="btn btn-primary">Learn More</a>
+                <a href="#" class="btn btn-primary">Learn More</a>
               </div>
             </div>
           </div>
@@ -259,7 +256,7 @@ improve your heart health.</p>
 assessment.status }}</span>
                           </td>
                           <td>
-                            <a href="{% url 'patient_result_detail' assessment.id %}" 
+                            <a href="#" 
 class="btn btn-sm btn-outline-primary">View</a>
                           </td>
                         </tr>
@@ -271,7 +268,7 @@ class="btn btn-sm btn-outline-primary">View</a>
                 <div class="text-center py-4">
                   <i class="bi bi-clipboard-x" style="font-size: 3rem; color: #ccc;"></i>
                   <p class="mt-3">You haven't completed any assessments yet.</p>
-                  <a href="{% url 'patient_assessment' %}" class="btn btn-primary mt-2">Start 
+                  <a href="{% url 'start_assessment' %}" class="btn btn-primary mt-2">Start 
 Your First Assessment</a>
                 </div>
               {% endif %}
