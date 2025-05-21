@@ -88,100 +88,107 @@ from django.urls import reverse
 
 @login_required
 def assessment_view(request):
-    # Get category from URL, default to first one
-    category = request.GET.get('category', None)
+    from django.urls import reverse
 
-    # Get all unique categories ordered by their logical sequence
-    all_categories = list(CVD_risk_Questionnaire.objects.order_by('question_order').values_list('category', flat=True).distinct())
+    # Step 1: Fetch current category from query param
+    category = request.GET.get('category')
 
-    # Default to first if not provided
-    if not category:
+    # Step 2: Get all categories in order
+    all_categories = list(CVD_risk_Questionnaire.objects.order_by('question_order')
+                          .values_list('category', flat=True).distinct())
+
+    # Step 3: Default to first category if none given
+    if not category and all_categories:
         return redirect(f"{reverse('start_assessment')}?category={all_categories[0]}")
 
-    # Get completed categories from session
-    completed_categories = request.session.get('completed_categories', [])
-    
-    # Find previous and next categories for navigation
+    # Step 4: Navigation helpers
     try:
         current_index = all_categories.index(category)
         previous_category = all_categories[current_index - 1] if current_index > 0 else None
-        next_category = all_categories[current_index + 1] if current_index + 1 < len(all_categories) else None    
+        next_category = all_categories[current_index + 1] if current_index + 1 < len(all_categories) else None
     except ValueError:
         previous_category = None
         next_category = None
 
-    # Load questions for this category
+    # Step 5: Load patient and questions
+    patient = Patients.objects.get(user=request.user)
     questions = CVD_risk_Questionnaire.objects.filter(category=category).order_by('question_order')
 
     if request.method == 'POST':
-        # Save responses
         all_valid = True
         for q in questions:
             key = f"question_{q.question_id}"
             value = request.POST.get(key)
 
-            if not value and q.required:  # Check if required question is answered
+            if not value and q.required:
                 all_valid = False
                 break
 
-            if value:  # Skip unanswered optional questions
+            if value:
+                response_data = {}
+                options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
+
+                if options.exists():
+                    try:
+                        selected_option = options.get(option_label=value)
+                        response_data['option_selected'] = selected_option.option_text
+                        response_data['option_selected_id'] = selected_option.id
+                    except CVD_risk_QuestionResponseOptions.DoesNotExist:
+                        response_data['option_selected'] = value  # fallback
+                else:
+                    try:
+                        numeric_value = float(value)
+                        response_data['numeric_response'] = numeric_value
+                    except ValueError:
+                        # Check for boolean
+                        if value.lower() in ['yes', 'true', '1']:
+                            response_data['boolean_response'] = True
+                        elif value.lower() in ['no', 'false', '0']:
+                            response_data['boolean_response'] = False
+                        else:
+                            response_data['option_selected'] = value  # fallback
+
+                # Save response
                 CVD_risk_Responses.objects.update_or_create(
-                    patient = Patients.objects.get(user=request.user)
                     patient=patient,
                     question=q,
-                    defaults={'response': value}
+                    defaults=response_data
                 )
 
         if all_valid:
-            # Mark this category as completed
+            completed_categories = request.session.get('completed_categories', [])
             if category not in completed_categories:
                 completed_categories.append(category)
                 request.session['completed_categories'] = completed_categories
-            
-            # Go to next category or finish
+
             if next_category:
                 return redirect(f"{reverse('start_assessment')}?category={next_category}")
             else:
-                # Clear completed categories from session when assessment is complete
                 request.session['completed_categories'] = []
-                return redirect('patient_results')  # Redirect to results page
+                return redirect('patient_results')
         else:
-            # If validation fails, stay on current page with error message
             error_message = "Please answer all required questions."
-            # Build question + options list
-            question_data = []
-            for q in questions:
-                options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
-                # Get saved response if any
-                patient = Patients.objects.get(user=request.user)
-                saved_response = CVD_risk_Responses.objects.filter(patient=patient, question=q).first()
-                response_value = saved_response.response if saved_response else None
-                question_data.append({
-                    'question': q, 
-                    'options': options,
-                    'response': response_value
-                })
-            
-            return render(request, 'assessment.html', {
-                'category': category,
-                'question_data': question_data,
-                'all_categories': all_categories,
-                'completed_categories': completed_categories,
-                'previous_category': previous_category,
-                'next_category': next_category,
-                'error_message': error_message
-            })
 
-    # Build question + options list with any saved responses
+    else:
+        error_message = None
+
+    # Step 6: Prepare question/option data
     question_data = []
     for q in questions:
         options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
-        # Get saved response if any
-        patient = Patients.objects.get(user=request.user)
         saved_response = CVD_risk_Responses.objects.filter(patient=patient, question=q).first()
-        response_value = saved_response.response if saved_response else None
+
+        response_value = None
+        if saved_response:
+            response_value = (
+                saved_response.option_selected_id or
+                saved_response.option_selected or
+                saved_response.numeric_response or
+                saved_response.boolean_response
+            )
+
         question_data.append({
-            'question': q, 
+            'question': q,
             'options': options,
             'response': response_value
         })
@@ -190,9 +197,10 @@ def assessment_view(request):
         'category': category,
         'question_data': question_data,
         'all_categories': all_categories,
-        'completed_categories': completed_categories,
+        'completed_categories': request.session.get('completed_categories', []),
         'previous_category': previous_category,
-        'next_category': next_category
+        'next_category': next_category,
+        'error_message': error_message
     })
 
 def get_next_category(category_list, current):

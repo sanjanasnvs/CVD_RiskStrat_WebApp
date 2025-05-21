@@ -85,12 +85,7 @@ class CVD_risk_Questionnaire(models.Model):
     subcategory = models.CharField(max_length=100, null=True, blank=True)
     dependencies = models.ManyToManyField('self', symmetrical=False, blank=True)
     question_order = models.IntegerField(default=0)
-    QUESTION_TYPE_CHOICES = [
-    ('Option', 'Option'),
-    ('Numeric', 'Numeric'),
-    ('Boolean', 'Boolean'),
-]
-    question_type = models.CharField(max_length=50, choices=QUESTION_TYPE_CHOICES,default='Option')   
+    answer_type = models.CharField(max_length=50, null=True, blank=True)    
 
     class Meta:
         db_table = 'CVD_risk_Questionnaire'
