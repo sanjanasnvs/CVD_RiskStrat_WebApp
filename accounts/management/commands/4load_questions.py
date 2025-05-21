@@ -4,23 +4,12 @@ from django.core.management.base import BaseCommand
 from django.conf import settings
 from accounts.models import CVD_risk_Questionnaire
 
+
 class Command(BaseCommand):
     help = 'Load questions and dependencies into CVD_risk_Questionnaire table using ManyToManyField.'
 
     def handle(self, *args, **kwargs):
-        # Define the fixed display order of categories
-        CATEGORY_ORDER = [
-            "Sociodemographics",
-            "Health and medical history",
-            "Sex-specific factors",
-            "Early life factors",
-            "Family History",
-            "Lifestyle and environment",
-            "Psychosocial factors"
-        ]
-        category_index = {cat: i for i, cat in enumerate(CATEGORY_ORDER)}
-
-        # Setup paths to the Excel files
+        # Setup paths
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         data_dir = os.path.join(settings.BASE_DIR, 'Questionnaire_data')
 
@@ -31,7 +20,7 @@ class Command(BaseCommand):
         mapping_df = pd.read_excel(questions_file)
         advanced_df = pd.read_excel(dependencies_file)
 
-        # Strip leading/trailing whitespace from headers
+        # Clean headers
         mapping_df.columns = mapping_df.columns.str.strip()
         advanced_df.columns = advanced_df.columns.str.strip()
 
@@ -40,27 +29,21 @@ class Command(BaseCommand):
 
         print("🔗 Deduplicating and merging files...")
         unique_questions_df = mapping_df.drop_duplicates(subset=["Field ID"])
-        merged_df = pd.merge(unique_questions_df, advanced_df, how='left', left_on='Field ID', 
-right_on='Field.ID')
+        merged_df = pd.merge(unique_questions_df, advanced_df, how='left', left_on='Field ID', right_on='Field.ID')
 
-        # Set ordering based on fixed category list and original Excel row order
-        merged_df['CategoryOrder'] = merged_df['Category'].map(category_index)
-        merged_df['RowOrder'] = merged_df.index
-        merged_df = merged_df.sort_values(by=['CategoryOrder', 'RowOrder'])
-
-        print("📥 Inserting questions...")
         imported, skipped, duplicates = 0, 0, 0
         seen_ids = set()
         question_lookup = {}
 
-        for question_order, (_, row) in enumerate(merged_df.iterrows(), start=1):
+        print("📥 Inserting questions...")
+
+        for idx, row in merged_df.iterrows():
             field_id = row.get('Field ID')
             question_text = row.get('Question Stem')
             category = row.get('Category')
             subcategory = row.get('Sub.category')
-            answer_type = row.get('Answer Type')  # <- Adjust if your column name differs
+            question_order = idx + 1
 
-            # Skip if field_id or question text is missing
             if pd.isna(field_id) or pd.isna(question_text):
                 skipped += 1
                 continue
@@ -80,29 +63,24 @@ right_on='Field.ID')
                     question_id=question_id,
                     question_text=str(question_text).strip(),
                     category=str(category).strip() if isinstance(category, str) else None,
-                    subcategory=str(subcategory).strip() if isinstance(subcategory, str) else 
-None,
-                    question_order=question_order,
-                    answer_type=str(answer_type).strip() if isinstance(answer_type, str) else 
-None  # <- make sure your model has this field
+                    subcategory=str(subcategory).strip() if isinstance(subcategory, str) else None,
+                    question_order=question_order
                 )
                 question_lookup[question_id] = q
                 seen_ids.add(question_id)
                 imported += 1
             except Exception as e:
-                print(f"❌ Error importing row {question_order} (Field ID: {field_id}): {e}")
+                print(f"❌ Error importing row {idx} (Field ID: {field_id}): {e}")
                 skipped += 1
 
         print(f"\n✅ Imported {imported} questions.")
         print(f"❌ Skipped {skipped} rows. 🔁 Ignored {duplicates} duplicates.")
 
-        # ✅ Update dependencies using ManyToMany field
+        # ✅ Dependency update block
         print("\n🔄 Updating dependencies...")
 
-        advanced_df["Has_Dep"] = advanced_df[["Determined.by", "Or.determined.by", 
-"And.determined.by"]].notna().any(axis=1)
-        filtered_dependencies_df = advanced_df.sort_values("Has_Dep", 
-ascending=False).drop_duplicates(subset=["Field.ID"])
+        advanced_df["Has_Dep"] = advanced_df[["Determined.by", "Or.determined.by", "And.determined.by"]].notna().any(axis=1)
+        filtered_dependencies_df = advanced_df.sort_values("Has_Dep", ascending=False).drop_duplicates(subset=["Field.ID"])
 
         updated = 0
 
@@ -127,8 +105,7 @@ ascending=False).drop_duplicates(subset=["Field.ID"])
                     ])
 
             if deps:
-                dependency_objs = CVD_risk_Questionnaire.objects.filter(question_id__in=[int(d) 
-for d in deps])
+                dependency_objs = CVD_risk_Questionnaire.objects.filter(question_id__in=[int(d) for d in deps])
                 q.dependencies.set(dependency_objs)
                 updated += 1
             else:
