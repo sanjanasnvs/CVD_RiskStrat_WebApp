@@ -299,16 +299,11 @@ completed
                 </span>
               </div>
               <div class="progress" style="height: 10px;">
-                {% if all_categories %}
-                  {% with progress=completed_categories|length|floatformat:0|add:"0" %}
-                  {% with total=all_categories|length|floatformat:0|add:"0" %}
-                  {% with percentage=progress|divisibleby:total|floatformat:0|add:"0" %}
-                  <div class="progress-bar" role="progressbar" style="width: {{ percentage 
-}}%;" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
-                  {% endwith %}
-                  {% endwith %}
-                  {% endwith %}
-                {% endif %}
+                <div class="progress-bar" role="progressbar" 
+                     style="width: {{ progress_percentage }}%;" 
+                     aria-valuenow="{{ progress_percentage }}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100"></div>
               </div>
             </div>
             
@@ -511,9 +506,6 @@ textarea[required]');
       // Handle dependent questions
       const handleDependentQuestions = function() {
         // Example: If you have dependent questions, you can show/hide them based on responses
-        // This is a placeholder for the actual implementation
-        
-        // For example, if question_123 has value "yes", show dependent question_124
         const triggerInputs = document.querySelectorAll('[data-has-dependent="true"]');
         
         triggerInputs.forEach(input => {

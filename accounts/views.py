@@ -193,7 +193,7 @@ def assessment_view(request):
             'response': response_value
         })
 
-    return render(request, 'assessment.html', {
+    return render(request, 'patients/assessment.html', {
         'category': category,
         'question_data': question_data,
         'all_categories': all_categories,
