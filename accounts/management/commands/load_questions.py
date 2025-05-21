@@ -58,7 +58,7 @@ right_on='Field.ID')
             question_text = row.get('Question Stem')
             category = row.get('Category')
             subcategory = row.get('Sub.category')
-            answer_type = row.get('Answer Type')  # <- Adjust if your column name differs
+            answer_type = row.get('Select one/Toggle multiple/Enter integer answer')  #Column name
 
             # Skip if field_id or question text is missing
             if pd.isna(field_id) or pd.isna(question_text):
