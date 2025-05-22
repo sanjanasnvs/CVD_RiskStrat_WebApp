@@ -94,8 +94,12 @@ def assessment_view(request):
     category = request.GET.get('category')
 
     # Step 2: Get all categories in order
-    all_categories = list(CVD_risk_Questionnaire.objects.order_by('question_order')
-                          .values_list('category', flat=True).distinct())
+    all_categories = list(
+         CVD_risk_Questionnaire.objects.order_by('category')
+         .values_list('category', flat=True)
+         .distinct()
+    )
+                         
 
     # Step 3: Default to first category if none given
     if not category and all_categories:
@@ -191,6 +195,7 @@ def assessment_view(request):
             'question': q,
             'options': options,
             'response': response_value
+            'answer_type': q.answer_type
         })
 
     return render(request, 'patients/assessment.html', {
