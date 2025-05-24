@@ -16,7 +16,9 @@
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <link 
+href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" 
+rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="{% static 'medilab/assets/vendor/bootstrap/css/bootstrap.min.css' %}" 
@@ -149,11 +151,7 @@ rel="stylesheet">
     }
     
     .numeric-input {
-      max-width: 200px;
-    }
-    
-    .text-input {
-      max-width: 400px;
+      max-width: 150px;
     }
     
     .required-field::after {
@@ -175,41 +173,6 @@ rel="stylesheet">
     
     .is-invalid {
       border-color: #dc3545;
-    }
-    
-    .form-check {
-      margin-bottom: 0.75rem;
-    }
-    
-    .form-check:last-child {
-      margin-bottom: 0;
-    }
-    
-    .form-check-label {
-      margin-left: 0.5rem;
-      cursor: pointer;
-    }
-    
-    .checkbox-group {
-      border: 1px solid #dee2e6;
-      border-radius: 0.375rem;
-      padding: 1rem;
-      background-color: #fff;
-    }
-    
-    .checkbox-group .form-check {
-      margin-bottom: 0.5rem;
-    }
-    
-    .checkbox-group .form-check:last-child {
-      margin-bottom: 0;
-    }
-    
-    .multiple-select-note {
-      font-size: 0.875rem;
-      color: #6c757d;
-      font-style: italic;
-      margin-bottom: 0.75rem;
     }
   </style>
 </head>
@@ -353,82 +316,52 @@ rel="stylesheet">
                     {% for item in question_data %}
                       <div class="question-item">
                         <div class="question-stem required-field">
-                          {{ item.question.question_text }}
+                          {{ item.question.question_stem|default:item.question.question_text }}
                         </div>
-
+                        
                         <div class="question-options">
-                          {% if item.answer_type == "Enter integer answer" %}
+                          {% if item.question.data_type == 'Numeric' %}
                             <!-- Numeric input -->
-                            <input type="number"
-                                   class="form-control numeric-input"
-                                   id="question_{{ item.question.question_id }}"
-                                   name="question_{{ item.question.question_id }}"
-                                   value="{{ item.response|default:'' }}"
-                                   placeholder="Enter a number"
-                                   required>
+                            <input type="number" 
+                                  class="form-control numeric-input" 
+                                  id="question_{{ item.question.question_id }}" 
+                                  name="question_{{ item.question.question_id }}" 
+                                  value="{{ item.response|default:'' }}"
+                                  required>
                             <div class="invalid-feedback">
                               Please provide a valid number.
                             </div>
-
-                          {% elif item.answer_type == "Select one answer" %}
-                            <!-- Radio buttons for single selection -->
+                            
+                          {% elif item.question.data_type == 'Logical' %}
+                            <!-- Logical/Select options -->
                             {% if item.options %}
                               {% for option in item.options %}
                                 <div class="form-check">
-                                  <input type="radio"
-                                         class="form-check-input"
-                                         name="question_{{ item.question.question_id }}"
-                                         id="q{{ item.question.question_id }}_opt{{ forloop.counter }}"
-                                         value="{{ option.option_value }}"
-                                         {% if item.response == option.option_value %}checked{% endif %}
-                                         required>
-                                  <label class="form-check-label"
-                                         for="q{{ item.question.question_id }}_opt{{ forloop.counter }}">
+                                  <input class="form-check-input" 
+                                        type="radio" 
+                                        name="question_{{ item.question.question_id }}" 
+                                        id="question_{{ item.question.question_id }}_option_{{ forloop.counter }}" 
+                                        value="{{ option.option_value }}"
+                                        {% if item.response == option.option_value %}checked{% endif %}
+                                        required>
+                                  <label class="form-check-label" for="question_{{ item.question.question_id }}_option_{{ forloop.counter }}">
                                     {{ option.option_text }}
                                   </label>
                                 </div>
                               {% endfor %}
                             {% endif %}
                             <div class="invalid-feedback">
-                              Please select one option.
+                              Please select an option.
                             </div>
-
-                          {% elif item.answer_type == "Toggle multiple answer" %}
-                            <!-- Checkboxes for multiple selection -->
-                            <div class="multiple-select-note">
-                              <i class="bi bi-info-circle me-1"></i>Select all that apply
-                            </div>
-                            {% if item.options %}
-                              <div class="checkbox-group">
-                                {% for option in item.options %}
-                                  <div class="form-check">
-                                    <input type="checkbox"
-                                           class="form-check-input"
-                                           name="question_{{ item.question.question_id }}_multi"
-                                           id="q{{ item.question.question_id }}_opt{{ forloop.counter }}"
-                                           value="{{ option.option_value }}"
-                                           {% if option.option_value in item.response %}checked{% endif %}>
-                                    <label class="form-check-label"
-                                           for="q{{ item.question.question_id }}_opt{{ forloop.counter }}">
-                                      {{ option.option_text }}
-                                    </label>
-                                  </div>
-                                {% endfor %}
-                              </div>
-                            {% endif %}
-                            <div class="invalid-feedback">
-                              Please select at least one option.
-                            </div>
-
+                            
                           {% else %}
-                            <!-- Fallback text input -->
-                            <input type="text"
-                                   class="form-control text-input"
-                                   id="question_{{ item.question.question_id }}"
-                                   name="question_{{ item.question.question_id }}"
-                                   value="{{ item.response|default:'' }}"
-                                   placeholder="Enter your answer"
-                                   required>
+                            <!-- Text input for other types -->
+                            <input type="text" 
+                                  class="form-control" 
+                                  id="question_{{ item.question.question_id }}" 
+                                  name="question_{{ item.question.question_id }}" 
+                                  value="{{ item.response|default:'' }}"
+                                  required>
                             <div class="invalid-feedback">
                               This field is required.
                             </div>
@@ -449,8 +382,7 @@ rel="stylesheet">
                         <i class="bi bi-arrow-left me-2"></i>Previous
                       </a>
                     {% else %}
-                      <button type="button" class="btn btn-outline-primary btn-nav" disabled>
-                        <i class="bi bi-arrow-left me-2"></i>Previous
+                      <button type="button" class="btn btn-outline-primary btn-nav" disabled>                        <i class="bi bi-arrow-left me-2"></i>Previous
                       </button>
                     {% endif %}
                     
@@ -485,7 +417,8 @@ href="https://themewagon.com">ThemeWagon</a>
   </footer>
 
   <!-- Scroll Top -->
-  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center 
+justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
 
   <!-- Preloader -->
   <div id="preloader"></div>
@@ -501,7 +434,7 @@ href="https://themewagon.com">ThemeWagon</a>
   <!-- Main JS File -->
   <script src="{% static 'medilab/assets/js/main.js' %}?{{ timestamp }}"></script>
 
-  <!-- Enhanced Form Validation Script -->
+  <!-- Form Validation Script -->
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const form = document.getElementById('assessment-form');
@@ -510,8 +443,9 @@ href="https://themewagon.com">ThemeWagon</a>
         form.addEventListener('submit', function(event) {
           let isValid = true;
           
-          // Check all required inputs (text, number, etc.)
-          const requiredInputs = form.querySelectorAll('input[required]:not([type="radio"]):not([type="checkbox"]), select[required], textarea[required]');
+          // Check all required inputs
+          const requiredInputs = form.querySelectorAll('input[required], select[required], 
+textarea[required]');
           
           requiredInputs.forEach(input => {
             if (!input.value.trim()) {
@@ -522,7 +456,7 @@ href="https://themewagon.com">ThemeWagon</a>
             }
           });
           
-          // Check radio button groups (single selection questions)
+          // Check radio button groups
           const radioGroups = {};
           form.querySelectorAll('input[type="radio"][required]').forEach(radio => {
             const name = radio.getAttribute('name');
@@ -540,44 +474,6 @@ href="https://themewagon.com">ThemeWagon</a>
               radios.forEach(radio => {
                 radio.classList.add('is-invalid');
               });
-            } else {
-              const radios = form.querySelectorAll(`input[name="${groupName}"]`);
-              radios.forEach(radio => {
-                radio.classList.remove('is-invalid');
-              });
-            }
-          }
-          
-          // Check checkbox groups (multiple selection questions)
-          const checkboxGroups = {};
-          form.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            const name = checkbox.getAttribute('name');
-            if (name && name.includes('_multi')) {
-              checkboxGroups[name] = checkboxGroups[name] || false;
-              if (checkbox.checked) {
-                checkboxGroups[name] = true;
-              }
-            }
-          });
-          
-          // For multiple choice questions, at least one option should be selected
-          for (const groupName in checkboxGroups) {
-            const isGroupValid = checkboxGroups[groupName];
-            if (!isGroupValid) {
-              // Optional: You can make multiple choice questions required
-              // Uncomment the lines below if you want to require at least one selection
-              /*
-              isValid = false;
-              const checkboxes = form.querySelectorAll(`input[name="${groupName}"]`);
-              checkboxes.forEach(checkbox => {
-                checkbox.classList.add('is-invalid');
-              });
-              */
-            } else {
-              const checkboxes = form.querySelectorAll(`input[name="${groupName}"]`);
-              checkboxes.forEach(checkbox => {
-                checkbox.classList.remove('is-invalid');
-              });
             }
           }
           
@@ -589,17 +485,6 @@ href="https://themewagon.com">ThemeWagon</a>
             if (firstInvalid) {
               firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
-            
-            // Show error message
-            const existingAlert = form.querySelector('.validation-alert');
-            if (existingAlert) {
-              existingAlert.remove();
-            }
-            
-            const alertDiv = document.createElement('div');
-            alertDiv.className = 'alert alert-danger validation-alert mt-3';
-            alertDiv.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-2"></i>Please complete all required fields before proceeding.';
-            form.insertBefore(alertDiv, form.querySelector('.d-flex.justify-content-between'));
           }
         });
         
@@ -607,20 +492,6 @@ href="https://themewagon.com">ThemeWagon</a>
         form.querySelectorAll('input, select, textarea').forEach(input => {
           input.addEventListener('input', function() {
             this.classList.remove('is-invalid');
-            // Remove validation alert if it exists
-            const alert = form.querySelector('.validation-alert');
-            if (alert) {
-              alert.remove();
-            }
-          });
-          
-          input.addEventListener('change', function() {
-            this.classList.remove('is-invalid');
-            // Remove validation alert if it exists
-            const alert = form.querySelector('.validation-alert');
-            if (alert) {
-              alert.remove();
-            }
           });
         });
       }
