@@ -192,22 +192,25 @@ def assessment_view(request):
 
         response_value = None
         response_id = None
+        multi_response_ids = []
 
         if saved_response:
             # Get specific values for comparison in the template
             if q.answer_type == "Enter integer answer":
                 response_value = saved_response.numeric_response
-            elif q.answer_type == "Select one answer":
-                response_id = saved_response.option_selected_id
+            elif q.answer_type == "Select one answer": 
+                # We use option_selected_id to highlight the selected radio
+                response_id = str(saved_response.option_selected_id) if saved_response.option_selected_id else None
             elif q.answer_type == "Toggle multiple answer":
-                # Expecting comma-separated string of IDs, split into a list
-                response_value = saved_response.option_selected.split(',') if saved_response.option_selected else []
+                # We assume option_selected is stored as a comma-separated string of IDs
+                multi_response_ids = saved_response.option_selected.split(',') if saved_response.option_selected else []
 
         question_data.append({
             'question': q,
             'options': options,
-            'response': response_value,  # can be string, number, or list
-            'response_id': response_id,  # only used for "Select one"
+            'response': response_value,  # Used by integer and fallback
+            'response_id': response_id,  # Only used for "Select one"
+            'multi_response_ids': multi_response_ids,  # Used by "Toggle multiple answer"
             'answer_type': q.answer_type
         })
 
