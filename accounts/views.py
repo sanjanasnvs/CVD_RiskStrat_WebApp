@@ -187,7 +187,7 @@ def assessment_view(request):
     # Step 6: Prepare question/option data
     question_data = []
     for q in questions:
-        options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
+        options = list(CVD_risk_QuestionResponseOptions.objects.filter(question=q))
         saved_response = CVD_risk_Responses.objects.filter(patient=patient, question=q).first()
 
         response_value = None
@@ -201,7 +201,7 @@ def assessment_view(request):
 
         question_data.append({
             'question': q,
-            'options': CVD_risk_QuestionResponseOptions.objects.filter(question=q),
+            'options': options,
             'response': response_value,
             'answer_type': q.answer_type
         })
