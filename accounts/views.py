@@ -94,11 +94,9 @@ def assessment_view(request):
     category = request.GET.get('category')
 
     # Step 2: Get all categories in order
-    all_categories = list(
-         CVD_risk_Questionnaire.objects.order_by('category')
-         .values_list('category', flat=True)
-         .distinct()
-    )
+    CATEGORY_ORDER = ["Sociodemographics", "Health and medical history", "Sex-specific factors", "Early life factors", "Family history", "Lifestyle and environment", "Psychosocial factors"]
+    raw_categories = CVD_risk_Questionnaire.objects.values_list('category', flat=True).distinct()
+    all_categories = sorted(set(raw_categories), key=lambda x: CATEGORY_ORDER.index(x) if x in CATEGORY_ORDER else 999)
                          
 
     # Step 3: Default to first category if none given
@@ -122,43 +120,52 @@ def assessment_view(request):
         all_valid = True
         for q in questions:
             key = f"question_{q.question_id}"
-            value = request.POST.get(key)
+            response_data = {}
+            options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
 
-            if not value and q.required:
-                all_valid = False
-                break
+            #  Handle multi-select answers (Toggle multiple)
+            if q.answer_type == "Toggle multiple answer":
+                values = request.POST.getlist(f"{key}_option")
+                if not values and q.required:
+                    all_valid = False
+                    break
+                response_data['option_selected'] = ",".join(values)
 
-            if value:
-                response_data = {}
-                options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
+            else:
+                value = request.POST.get(key)
+                if not value and q.required:
+                    all_valid = False
+                    break
 
-                if options.exists():
-                    try:
-                        selected_option = options.get(option_label=value)
-                        response_data['option_selected'] = selected_option.option_text
-                        response_data['option_selected_id'] = selected_option.id
-                    except CVD_risk_QuestionResponseOptions.DoesNotExist:
-                        response_data['option_selected'] = value  # fallback
-                else:
-                    try:
-                        numeric_value = float(value)
-                        response_data['numeric_response'] = numeric_value
-                    except ValueError:
-                        # Check for boolean
-                        if value.lower() in ['yes', 'true', '1']:
-                            response_data['boolean_response'] = True
-                        elif value.lower() in ['no', 'false', '0']:
-                            response_data['boolean_response'] = False
-                        else:
+                if value:
+                    if options.exists():
+                        try:
+                            selected_option = options.get(option_label=value)
+                            response_data['option_selected'] = selected_option.option_text
+                            response_data['option_selected_id'] = selected_option.id
+                        except CVD_risk_QuestionResponseOptions.DoesNotExist:
                             response_data['option_selected'] = value  # fallback
+                    else:
+                        try:
+                            numeric_value = float(value)
+                            response_data['numeric_response'] = numeric_value
+                        except ValueError:
+                            # Fallback to boolean or text
+                            if value.lower() in ['yes', 'true', '1']:
+                                response_data['boolean_response'] = True
+                            elif value.lower() in ['no', 'false', '0']:
+                                response_data['boolean_response'] = False
+                            else:
+                                response_data['option_selected'] = value  # fallback
 
-                # Save response
-                CVD_risk_Responses.objects.update_or_create(
-                    patient=patient,
-                    question=q,
-                    defaults=response_data
-                )
+            #  Save the response
+            CVD_risk_Responses.objects.update_or_create(
+                patient=patient,
+                question=q,
+                defaults=response_data
+            )
 
+        #  If all questions were answered
         if all_valid:
             completed_categories = request.session.get('completed_categories', [])
             if category not in completed_categories:
@@ -175,6 +182,7 @@ def assessment_view(request):
 
     else:
         error_message = None
+
 
     # Step 6: Prepare question/option data
     question_data = []
@@ -193,8 +201,8 @@ def assessment_view(request):
 
         question_data.append({
             'question': q,
-            'options': options,
-            'response': response_value
+            'options': CVD_risk_QuestionResponseOptions.objects.filter(question=q),
+            'response': response_value,
             'answer_type': q.answer_type
         })
 
