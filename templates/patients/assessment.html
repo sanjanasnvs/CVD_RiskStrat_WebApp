@@ -402,7 +402,7 @@
                                            name="question_{{ item.question.question_id }}_multi"
                                            id="q{{ item.question.question_id }}_opt{{ forloop.counter }}"
                                            value="{{ option.id }}"
-                                           {% if option.id|stringformat:"s" == item.response_id|stringformat:"s" %}checked{% endif %}
+                                           {% if option.id|stringformat:"s" == item.multi_response_ids|stringformat:"s" %}checked{% endif %}
                                     <label class="form-check-label"
                                            for="q{{ item.question.question_id }}_opt{{ forloop.counter }}">
                                       {{ option.option_text }}
