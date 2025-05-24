@@ -191,18 +191,23 @@ def assessment_view(request):
         saved_response = CVD_risk_Responses.objects.filter(patient=patient, question=q).first()
 
         response_value = None
+        response_id = None
+
         if saved_response:
-            response_value = (
-                saved_response.option_selected_id or
-                saved_response.option_selected or
-                saved_response.numeric_response or
-                saved_response.boolean_response
-            )
+            # Get specific values for comparison in the template
+            if q.answer_type == "Enter integer answer":
+                response_value = saved_response.numeric_response
+            elif q.answer_type == "Select one answer":
+                response_id = saved_response.option_selected_id
+            elif q.answer_type == "Toggle multiple answer":
+                # Expecting comma-separated string of IDs, split into a list
+                response_value = saved_response.option_selected.split(',') if saved_response.option_selected else []
 
         question_data.append({
             'question': q,
             'options': options,
-            'response': response_value,
+            'response': response_value,  # can be string, number, or list
+            'response_id': response_id,  # only used for "Select one"
             'answer_type': q.answer_type
         })
 
