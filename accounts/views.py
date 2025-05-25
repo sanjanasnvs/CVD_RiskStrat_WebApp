@@ -7,6 +7,10 @@ from .models import Users
 from .forms import CustomUserCreationForm
 from .models import *
 from django.shortcuts import get_object_or_404
+import joblib
+import pandas as pd
+import numpy as np
+from django.http import JsonResponse
 
 
 def login_view(request):
@@ -232,6 +236,61 @@ def get_next_category(category_list, current):
     except ValueError:
         return None
  
+
+def run_sociodemographic_model(request):
+    patient = request.user.patients  # Assuming OneToOne relation
+
+    # Step 1: Load model artifacts
+    model_path = 'model_files/MRMR_COX_Sociodemographics.pkl'
+    scaler_path = 'model_files/scaler.pkl'
+    imputer_path = 'model_files/imputer.pkl'
+
+    model = joblib.load(model_path)
+    scaler = joblib.load(scaler_path)
+    imputer = joblib.load(imputer_path)
+
+    # Step 2: Define the expected features (same order as training)
+    features = ['feature1', 'feature2', 'feature3']  # TODO: replace with real list
+
+    # Step 3: Collect patient responses to sociodemographic questions
+    questions = CVD_risk_Questionnaire.objects.filter(category='Sociodemographics')
+    data_dict = {}
+
+    for feature in features:
+        q = questions.filter(question_text__icontains=feature).first()
+        if not q:
+            data_dict[feature] = np.nan
+            continue
+
+        response = CVD_risk_Responses.objects.filter(patient=patient, question=q).first()
+
+        if response:
+            data_dict[feature] = (
+                response.numeric_response or
+                response.boolean_response or
+                response.option_selected or
+                np.nan
+            )
+        else:
+            data_dict[feature] = np.nan
+
+    df = pd.DataFrame([data_dict])
+
+    # Step 4: Preprocess the data
+    df_imputed = pd.DataFrame(imputer.transform(df), columns=features)
+    df_scaled = pd.DataFrame(scaler.transform(df_imputed), columns=features)
+
+    # Step 5: Predict
+    prediction = model.predict(df_scaled)[0]  # e.g., risk score or binary outcome
+
+    # Step 6: Return result
+    return JsonResponse({
+        "patient_id": patient.patient_id,
+        "sociodemographic_risk_score": float(prediction)
+    })
+
+
+
 @login_required
 def patient_results(request):
     # fetch latest result for the patient
