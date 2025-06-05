@@ -35,7 +35,8 @@ class Users(AbstractUser):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=True)  # Required for access to admin
     is_superuser = models.BooleanField(default=True)  # Required for superuser privileges
-
+    def get_username(self):
+        return self.email
     role = models.CharField(
         max_length=20,
         choices=[
@@ -83,13 +84,30 @@ class CVD_risk_Questionnaire(models.Model):
     question_text = models.TextField()
     category = models.CharField(max_length=100, null=True, blank=True)
     subcategory = models.CharField(max_length=100, null=True, blank=True)
-    dependencies = models.ManyToManyField('self', symmetrical=False, blank=True)
     question_order = models.IntegerField(default=0)
     answer_type = models.CharField(max_length=50, null=True, blank=True)    
 
     class Meta:
         db_table = 'CVD_risk_Questionnaire'
         verbose_name_plural = 'CVD Risk Questionnaire'
+        
+
+class CVD_risk_QuestionnaireDependency(models.Model):
+    triggering_question = models.ForeignKey(
+        'CVD_risk_Questionnaire', related_name='dependent_questions', on_delete=models.CASCADE
+    )
+    conditional_question = models.ForeignKey(
+        'CVD_risk_Questionnaire', related_name='trigger_questions', on_delete=models.CASCADE
+    )
+    trigger_values = models.CharField(max_length=255, blank=True, null=True)
+    def __str__(self):
+        return f"If Q{self.triggering_question.question_id} in {self.trigger_values} ⇒ show Q{self.conditional_question.question_id}"
+
+    class Meta:
+        db_table = 'CVD_risk_Questionnaire_dependency_values'
+        verbose_name = "Question Dependency"
+        verbose_name_plural = "Question Dependencies"
+        unique_together = ('triggering_question', 'conditional_question')  # Optional constraint
 
 
 class CVD_risk_QuestionResponseOptions(models.Model):
@@ -113,6 +131,7 @@ class CVD_risk_Responses(models.Model):
     numeric_response = models.FloatField(null=True, blank=True)
     boolean_response = models.BooleanField(null=True, blank=True)
     option_selected = models.ForeignKey(CVD_risk_QuestionResponseOptions, on_delete=models.SET_NULL, null=True, blank=True)
+    multi_selected_options = models.ManyToManyField(CVD_risk_QuestionResponseOptions, related_name="multi_responses", blank=True)
     response_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -121,6 +140,7 @@ class CVD_risk_Responses(models.Model):
 
 
 class CVD_risk_Clinician_Patient(models.Model):
+    id = models.AutoField(primary_key=True)
     clinician = models.ForeignKey(Clinicians, on_delete=models.CASCADE)
     patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
     assigned_date = models.DateTimeField(auto_now_add=True)
@@ -168,6 +188,7 @@ class Risk_Stratification(models.Model):
     recommendation = models.TextField()
     assessed_at = models.DateTimeField(auto_now_add=True)
     model = models.ForeignKey(ML_Models, on_delete=models.SET_NULL, null=True)
+    alert_sent = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'Risk_Stratification'

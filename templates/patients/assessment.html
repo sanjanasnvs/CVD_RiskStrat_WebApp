@@ -16,7 +16,9 @@
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com" rel="preconnect">
   <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <link 
+href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" 
+rel="stylesheet">
 
   <!-- Vendor CSS Files -->
   <link href="{% static 'medilab/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
@@ -123,6 +125,14 @@
       border-left: 4px solid #1977cc;
     }
     
+    /* Add slight visual indication for dependent questions */
+    .question-item.dependent-question {
+      border-left-color: #6c757d;
+      border-left-width: 4px;
+      background-color: #f3f6f9;
+      margin-left: 1rem;
+    }
+    
     .question-item:last-child {
       margin-bottom: 0;
     }
@@ -135,12 +145,6 @@
     
     .question-options {
       margin-left: 1rem;
-    }
-    
-    .dependent-question {
-      margin-top: 1rem;
-      padding-left: 1.5rem;
-      border-left: 3px solid #1977cc;
     }
     
     .numeric-input {
@@ -205,6 +209,68 @@
       color: #6c757d;
       font-style: italic;
       margin-bottom: 0.75rem;
+    }
+    
+    /* Risk Score Styling */
+    .risk-score-display {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .risk-score-value {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
+    
+    .risk-score-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+    }
+    
+    .questionnaire-ended {
+      background-color: #f8f9fa;
+      border: 2px solid #28a745;
+      border-radius: 10px;
+      padding: 2rem;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .questionnaire-ended h4 {
+      color: #28a745;
+      margin-bottom: 1rem;
+    }
+    
+    .questionnaire-ended .btn {
+      margin-top: 1rem;
+    }
+    
+    .category-status {
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 15px;
+      display: inline-block;
+    }
+    
+    .status-current {
+      background-color: #1977cc;
+      color: white;
+    }
+    
+    .status-completed {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .status-pending {
+      background-color: #6c757d;
+      color: white;
     }
   </style>
 </head>
@@ -290,12 +356,37 @@
                 <div>
                   <h2>Cardiovascular Risk Assessment</h2>
                   <p class="mb-0">Complete the questionnaire to assess your cardiovascular disease risk.</p>
+                  {% if category %}
+                    <div class="category-status status-current mt-2">
+                      <i class="bi bi-arrow-right-circle me-1"></i>Currently: {{ category }}
+                    </div>
+                  {% endif %}
                 </div>
                 <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-primary">
                   <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
                 </a>
               </div>
             </div>
+            
+            <!-- Risk Score Display (if available) -->
+            {% if request.session.risk_score %}
+              <div class="risk-score-display" data-aos="fade-up">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <div class="risk-score-value">{{ request.session.risk_score|floatformat:2 }}%</div>
+                    <div class="risk-score-label">Current CVD Risk Score</div>
+                  </div>
+                  <div class="text-end">
+                    <i class="bi bi-heart-pulse" style="font-size: 2rem; opacity: 0.7;"></i>
+                    {% if request.session.risk_category %}
+                      <div class="mt-1">
+                        <small>Category: {{ request.session.risk_category|title }}</small>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endif %}
             
             <!-- Category Tabs -->
             {% if all_categories %}
@@ -336,132 +427,161 @@
               </div>
             {% endif %}
             
-            <!-- Assessment Form -->
-            <div class="card shadow assessment-form" data-aos="fade-up" data-aos-delay="200">
-              <div class="card-body">
-                <h3 class="form-section-title">{{ category|default:"Assessment" }}</h3>
-                
-                <form id="assessment-form" method="POST">
-                  {% csrf_token %}
+            <!-- Check if questionnaire has ended -->
+            {% if questionnaire_ended %}
+              <!-- Questionnaire Ended Message -->
+              <div class="questionnaire-ended" data-aos="fade-up">
+                <h4><i class="bi bi-check-circle-fill me-2"></i>Assessment Complete</h4>
+                <p class="mb-3">
+                  Thank you for completing the cardiovascular risk assessment. 
+                  Based on your responses, we have sufficient information to determine your risk level.
+                </p>
+                {% if request.session.risk_score %}
+                  <p class="mb-3">
+                    <strong>Your Risk Score: {{ request.session.risk_score|floatformat:2 }}%</strong>
+                    {% if request.session.risk_category %}
+                      <br><small class="text-muted">Risk Category: {{ request.session.risk_category|title }}</small>
+                    {% endif %}
+                  </p>
+                {% endif %}
+                <div class="d-flex justify-content-center gap-3">
+                  <a href="{% url 'assessment_results' %}" class="btn btn-primary">
+                    <i class="bi bi-file-text me-2"></i>View Detailed Results
+                  </a>
+                  <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-house me-2"></i>Return to Dashboard
+                  </a>
+                </div>
+              </div>
+            {% else %}
+              <!-- Assessment Form - All questions come from backend after filtering for dependencies -->
+              <div class="card shadow assessment-form" data-aos="fade-up" data-aos-delay="200">
+                <div class="card-body">
+                  <h3 class="form-section-title">{{ category|default:"Assessment" }}</h3>
                   
-                  {% if question_data %}
-                    {% for item in question_data %}
-                      <div class="question-item">
-                        <div class="question-stem required-field">
-                          {{ item.question.question_text }}
-                        </div>
+                  <form id="assessment-form" method="POST">
+                    {% csrf_token %}
+                    
+                    {% if question_data %}
+                      {% for item in question_data %}
+                        <!-- Each question block - CSS class changes if it's a dependent question -->
+                        <div class="question-item {% if item.has_dependency %}dependent-question{% endif %}">
+                          <div class="question-stem required-field">
+                            {{ item.question.question_text }}
+                          </div>
 
-                        <div class="question-options">
-                          {% if item.answer_type == "Enter integer answer" %}
-                            <!-- Numeric input - uses item.response directly -->
-                            <input type="number"
-                                   class="form-control numeric-input"
-                                   id="question_{{ item.question.question_id }}"
-                                   name="question_{{ item.question.question_id }}"
-                                   value="{{ item.response|default:'' }}"
-                                   placeholder="Enter a number"
-                                   required>
-                            <div class="invalid-feedback">
-                              Please provide a valid number.
-                            </div>
+                          <div class="question-options">
+                            {% if item.answer_type == "Enter integer answer" %}
+                              <!-- Numeric input - uses item.response directly -->
+                              <input type="number"
+                                     class="form-control numeric-input"
+                                     id="question_{{ item.question.question_id }}"
+                                     name="question_{{ item.question.question_id }}"
+                                     value="{{ item.response|default:'' }}"
+                                     placeholder="Enter a number"
+                                     {% if item.required %}required{% endif %}>
+                              <div class="invalid-feedback">
+                                Please provide a valid number.
+                              </div>
 
-                          {% elif item.answer_type == "Select one answer" %}
-                            <!-- Radio buttons for single selection - uses option.id and item.response_id -->
-                            {% if item.options %}
-                              {% for option in item.options %}
-                                <div class="form-check">
-                                  <input type="radio"
-                                         class="form-check-input"
-                                         name="question_{{ item.question.question_id }}"
-                                         id="q{{ item.question.question_id }}_opt{{ forloop.counter }}"
-                                         value="{{ option.id }}"
-                                         {% if option.id|stringformat:"s" == item.response_id|stringformat:"s" %}checked{% endif %}
-                                         required>
-                                  <label class="form-check-label"
-                                         for="q{{ item.question.question_id }}_opt{{ forloop.counter }}">
-                                    {{ option.option_text }}
-                                  </label>
-                                </div>
-                              {% endfor %}
-                            {% endif %}
-                            <div class="invalid-feedback">
-                              Please select one option.
-                            </div>
-
-                          {% elif item.answer_type == "Toggle multiple answer" %}
-                            <!-- Checkboxes for multiple selection - uses option.id and item.response as list -->
-                            <div class="multiple-select-note">
-                              <i class="bi bi-info-circle me-1"></i>Select all that apply
-                            </div>
-                            {% if item.options %}
-                              <div class="checkbox-group">
+                            {% elif item.answer_type == "Select one answer" %}
+                              <!-- Radio buttons for single selection -->
+                              {% if item.options %}
                                 {% for option in item.options %}
                                   <div class="form-check">
-                                    <input type="checkbox"
+                                    <input type="radio"
                                            class="form-check-input"
-                                           name="question_{{ item.question.question_id }}_multi"
+                                           name="question_{{ item.question.question_id }}"
                                            id="q{{ item.question.question_id }}_opt{{ forloop.counter }}"
                                            value="{{ option.id }}"
-                                           {% if option.id|stringformat:"s" == item.multi_response_ids|stringformat:"s" %}checked{% endif %}
+                                           {% if option.id|stringformat:"s" == item.response_id|stringformat:"s" %}checked{% endif %}
+                                           {% if item.required %}required{% endif %}>
                                     <label class="form-check-label"
                                            for="q{{ item.question.question_id }}_opt{{ forloop.counter }}">
                                       {{ option.option_text }}
                                     </label>
                                   </div>
                                 {% endfor %}
+                              {% endif %}
+                              <div class="invalid-feedback">
+                                Please select one option.
+                              </div>
+
+                            {% elif item.answer_type == "Toggle multiple answer" %}
+                              <!-- Checkboxes for multiple selection -->
+                              <div class="multiple-select-note">
+                                <i class="bi bi-info-circle me-1"></i>Select all that apply
+                              </div>
+                              {% if item.options %}
+                                <div class="checkbox-group">
+                                  {% for option in item.options %}
+                                    <div class="form-check">
+                                      <input type="checkbox"
+                                             class="form-check-input"
+                                             name="question_{{ item.question.question_id }}_option"
+                                             id="q{{ item.question.question_id }}_opt{{ forloop.counter }}"
+                                             value="{{ option.id }}"
+                                             {% if option.id|stringformat:"s" in item.multi_response_ids %}checked{% endif %}>
+                                      <label class="form-check-label"
+                                             for="q{{ item.question.question_id }}_opt{{ forloop.counter }}">
+                                        {{ option.option_text }}
+                                      </label>
+                                    </div>
+                                  {% endfor %}
+                                </div>
+                              {% endif %}
+                              <div class="invalid-feedback">
+                                Please select at least one option.
+                              </div>
+
+                            {% else %}
+                              <!-- Fallback text input -->
+                              <input type="text"
+                                     class="form-control text-input"
+                                     id="question_{{ item.question.question_id }}"
+                                     name="question_{{ item.question.question_id }}"
+                                     value="{{ item.response|default:'' }}"
+                                     placeholder="Enter your answer"
+                                     {% if item.required %}required{% endif %}>
+                              <div class="invalid-feedback">
+                                This field is required.
                               </div>
                             {% endif %}
-                            <div class="invalid-feedback">
-                              Please select at least one option.
-                            </div>
-
-                          {% else %}
-                            <!-- Fallback text input -->
-                            <input type="text"
-                                   class="form-control text-input"
-                                   id="question_{{ item.question.question_id }}"
-                                   name="question_{{ item.question.question_id }}"
-                                   value="{{ item.response|default:'' }}"
-                                   placeholder="Enter your answer"
-                                   required>
-                            <div class="invalid-feedback">
-                              This field is required.
-                            </div>
-                          {% endif %}
+                          </div>
                         </div>
-                      </div>
-                    {% endfor %}
-                  {% else %}
-                    <div class="alert alert-info">
-                      <i class="bi bi-info-circle me-2"></i>No questions available for this category.
-                    </div>
-                  {% endif %}
-                  
-                  <!-- Form Navigation -->
-                  <div class="d-flex justify-content-between mt-4">
-                    {% if previous_category %}
-                      <a href="{% url 'assessment_view' %}?category={{ previous_category }}" class="btn btn-outline-primary btn-nav">
-                        <i class="bi bi-arrow-left me-2"></i>Previous
-                      </a>
+                      {% endfor %}
                     {% else %}
-                      <button type="button" class="btn btn-outline-primary btn-nav" disabled>
-                        <i class="bi bi-arrow-left me-2"></i>Previous
-                      </button>
+                      <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>No questions available for this category.
+                      </div>
                     {% endif %}
                     
-                    {% if next_category %}
-                      <button type="submit" class="btn btn-primary btn-nav">
-                        Next<i class="bi bi-arrow-right ms-2"></i>
-                      </button>
-                    {% else %}
-                      <button type="submit" class="btn btn-success btn-nav">
-                        Complete Assessment<i class="bi bi-check-circle ms-2"></i>
-                      </button>
-                    {% endif %}
-                  </div>
-                </form>
+                    <!-- Form Navigation -->
+                    <div class="d-flex justify-content-between mt-4">
+                      {% if previous_category %}
+                        <a href="{% url 'start_assessment' %}?category={{ previous_category }}" class="btn btn-outline-primary btn-nav">
+                          <i class="bi bi-arrow-left me-2"></i>Previous
+                        </a>
+                      {% else %}
+                        <button type="button" class="btn btn-outline-primary btn-nav" disabled>
+                          <i class="bi bi-arrow-left me-2"></i>Previous
+                        </button>
+                      {% endif %}
+                      
+                      {% if next_category %}
+                        <button type="submit" class="btn btn-primary btn-nav">
+                          Next<i class="bi bi-arrow-right ms-2"></i>
+                        </button>
+                      {% else %}
+                        <button type="submit" class="btn btn-success btn-nav">
+                          Complete Assessment<i class="bi bi-check-circle ms-2"></i>
+                        </button>
+                      {% endif %}
+                    </div>
+                  </form>
+                </div>
               </div>
-            </div>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -480,7 +600,8 @@ href="https://themewagon.com">ThemeWagon</a>
   </footer>
 
   <!-- Scroll Top -->
-  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center 
+justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
 
   <!-- Preloader -->
   <div id="preloader"></div>
@@ -506,7 +627,8 @@ href="https://themewagon.com">ThemeWagon</a>
           let isValid = true;
           
           // Check all required inputs (text, number, etc.)
-          const requiredInputs = form.querySelectorAll('input[required]:not([type="radio"]):not([type="checkbox"]), select[required], textarea[required]');
+          const requiredInputs = form.querySelectorAll('input[required]:not([type="radio"]):not([type="checkbox"]), 
+select[required], textarea[required]');
           
           requiredInputs.forEach(input => {
             if (!input.value.trim()) {
@@ -539,39 +661,6 @@ href="https://themewagon.com">ThemeWagon</a>
               const radios = form.querySelectorAll(`input[name="${groupName}"]`);
               radios.forEach(radio => {
                 radio.classList.remove('is-invalid');
-              });
-            }
-          }
-          
-          // Check checkbox groups (multiple selection questions)
-          const checkboxGroups = {};
-          form.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-            const name = checkbox.getAttribute('name');
-            if (name && name.includes('_multi')) {
-              checkboxGroups[name] = checkboxGroups[name] || false;
-              if (checkbox.checked) {
-                checkboxGroups[name] = true;
-              }
-            }
-          });
-          
-          // For multiple choice questions, at least one option should be selected
-          for (const groupName in checkboxGroups) {
-            const isGroupValid = checkboxGroups[groupName];
-            if (!isGroupValid) {
-              // Optional: You can make multiple choice questions required
-              // Uncomment the lines below if you want to require at least one selection
-              /*
-              isValid = false;
-              const checkboxes = form.querySelectorAll(`input[name="${groupName}"]`);
-              checkboxes.forEach(checkbox => {
-                checkbox.classList.add('is-invalid');
-              });
-              */
-            } else {
-              const checkboxes = form.querySelectorAll(`input[name="${groupName}"]`);
-              checkboxes.forEach(checkbox => {
-                checkbox.classList.remove('is-invalid');
               });
             }
           }

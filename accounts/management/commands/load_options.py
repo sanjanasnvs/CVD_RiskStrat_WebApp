@@ -9,7 +9,7 @@ class Command(BaseCommand):
     help = 'Load question response options into CVD_risk_QuestionResponseOptions table.'
 
     def handle(self, *args, **kwargs):
-        # 1. Load the Excel file
+        # Load Excel
         data_dir = os.path.join(settings.BASE_DIR, 'Questionnaire_data')
         file_path = os.path.join(data_dir, 'TS_mapping_with_questions_v1.xlsx')
 
@@ -17,33 +17,31 @@ class Command(BaseCommand):
         df = pd.read_excel(file_path)
         df.columns = df.columns.str.strip()
 
-        # 2. Filter valid option rows (only MCQ questions)
-        option_rows = df[df['Full Answer'].notna()].copy()
-        option_rows = option_rows[option_rows['Field ID'].notna()]
+        # Filter rows that have answers and valid Field IDs
+        option_rows = df[df['Full Answer'].notna() & df['Field ID'].notna()].copy()
         option_rows['Field ID'] = option_rows['Field ID'].astype(int)
 
-        # 3. Extract values from "Full Answer" column (e.g. '1 : Yes')
-        option_rows[['value', 'option_text']] = option_rows['Full Answer'].str.extract(r'([-\d]+)\s*:\s*(.*)')
+        # Clean question IDs actually in DB
+        valid_qids = set(CVD_risk_Questionnaire.objects.values_list('question_id', flat=True))
+        option_rows = option_rows[option_rows['Field ID'].isin(valid_qids)]
 
-        valid_options_df = option_rows.dropna(subset=['value', 'option_text'])
+        # Extract answer value and text
+        option_rows[['value', 'option_text']] = option_rows['Full Answer'].str.extract(r'([-\d.]+)\s*:\s*(.*)')
+        option_rows = option_rows.dropna(subset=['value', 'option_text'])
 
         created, skipped = 0, 0
 
         print("💾 Inserting options into database...")
-        for _, row in valid_options_df.iterrows():
+        for _, row in option_rows.iterrows():
             try:
                 qid = int(row['Field ID'])
-                question = CVD_risk_Questionnaire.objects.filter(question_id=qid).first()
+                question = CVD_risk_Questionnaire.objects.get(question_id=qid)
 
-                if not question:
-                    print(f"⚠️ Skipping: Question ID {qid} not found in DB.")
-                    skipped += 1
-                    continue
+                # Clear existing options for this question (optional safety net)
+                # CVD_risk_QuestionResponseOptions.objects.filter(question=question).delete()
 
-                # Strip label for answer_type field
                 option_label = str(row.get('Select one/Toggle multiple/Enter integer answer', '')).strip()
 
-                # Create option
                 CVD_risk_QuestionResponseOptions.objects.create(
                     question=question,
                     option_text=row['option_text'].strip(),
