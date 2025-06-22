@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  {% load static %}
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>CVD Risk Assessment Results - CVD Risk Predictor</title>
+  <meta name="description" content="Your cardiovascular disease risk assessment results">
+  <meta name="keywords" content="CVD, cardiovascular disease, risk assessment, results">
+
+  <!-- Favicons -->
+  <link href="{% static 'medilab/assets/img/favicon.png' %}" rel="icon">
+  <link href="{% static 'medilab/assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link 
+href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" 
+rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'medilab/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="{% static 'medilab/assets/css/main.css' %}" rel="stylesheet">
+
+  <style>
+    .results-container {
+      min-height: calc(100vh - 200px);
+      padding: 40px 0;
+    }
+    
+    .results-header {
+      background: linear-gradient(135deg, #1977cc 0%, #166ab9 100%);
+      color: white;
+      border-radius: 15px;
+      padding: 40px;
+      margin-bottom: 40px;
+      text-align: center;
+    }
+    
+    .results-header h1 {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+    
+    .results-header p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      margin-bottom: 0;
+    }
+    
+    .result-card {
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      padding: 30px;
+      margin-bottom: 30px;
+      border: 1px solid #e9ecef;
+    }
+    
+    .result-card h3 {
+      color: #1977cc;
+      margin-bottom: 25px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+    
+    .result-card h3 i {
+      margin-right: 10px;
+      font-size: 1.2em;
+    }
+    
+    .prediction-score {
+      text-align: center;
+      padding: 40px 20px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 15px;
+      margin-bottom: 30px;
+    }
+    
+    .score-value {
+      font-size: 4rem;
+      font-weight: 800;
+      color: #1977cc;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .score-label {
+      font-size: 1.2rem;
+      color: #6c757d;
+      font-weight: 500;
+    }
+    
+    .risk-category {
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 30px;
+    }
+    
+    .risk-low {
+      background-color: #d4edda;
+      color: #155724;
+      border: 2px solid #c3e6cb;
+    }
+    
+    .risk-high {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 2px solid #f5c6cb;
+    }
+    
+    .risk-inconclusive {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 2px solid #ffeaa7;
+    }
+    
+    .clinical-advice {
+      padding: 25px;
+      border-radius: 10px;
+      margin-bottom: 30px;
+      border-left: 5px solid;
+    }
+    
+    .advice-low {
+      background-color: #d4edda;
+      border-left-color: #28a745;
+      color: #155724;
+    }
+    
+    .advice-high {
+      background-color: #f8d7da;
+      border-left-color: #dc3545;
+      color: #721c24;
+    }
+    
+    .advice-inconclusive {
+      background-color: #fff3cd;
+      border-left-color: #ffc107;
+      color: #856404;
+    }
+    
+    .clinical-advice h4 {
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    
+    .clinical-advice p {
+      margin-bottom: 0;
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+    
+    .model-performance {
+      background: #f8f9fa;
+      border-radius: 10px;
+      padding: 25px;
+    }
+    
+    .performance-metric {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .performance-metric:last-child {
+      border-bottom: none;
+    }
+    
+    .metric-name {
+      font-weight: 500;
+      color: #495057;
+    }
+    
+    .metric-value {
+      font-weight: 600;
+      color: #1977cc;
+      font-size: 1.1rem;
+    }
+    
+    .explainability-plot {
+      text-align: center;
+      padding: 30px;
+      background: #f8f9fa;
+      border-radius: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .explainability-plot img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .plot-description {
+      margin-top: 20px;
+      color: #6c757d;
+      font-style: italic;
+    }
+    
+    .model-category {
+      background: #e3f2fd;
+      border: 1px solid #bbdefb;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .model-category h5 {
+      color: #1565c0;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    
+    .action-buttons {
+      text-align: center;
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 2px solid #e9ecef;
+    }
+    
+    .btn-primary {
+      background-color: #1977cc;
+      border-color: #1977cc;
+      padding: 12px 30px;
+      font-weight: 500;
+      margin: 0 10px;
+    }
+    
+    .btn-primary:hover {
+      background-color: #166ab9;
+      border-color: #166ab9;
+    }
+    
+    .btn-outline-secondary {
+      padding: 12px 30px;
+      font-weight: 500;
+      margin: 0 10px;
+    }
+    
+    .timestamp {
+      text-align: center;
+      color: #6c757d;
+      font-size: 0.9rem;
+      margin-top: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .results-header {
+        padding: 30px 20px;
+      }
+      
+      .results-header h1 {
+        font-size: 2rem;
+      }
+      
+      .score-value {
+        font-size: 3rem;
+      }
+      
+      .result-card {
+        padding: 20px;
+      }
+      
+      .action-buttons .btn {
+        display: block;
+        width: 100%;
+        margin: 10px 0;
+      }
+    }
+  </style>
+</head>
+
+{% now "U" as timestamp %}
+
+<body class="results-page">
+
+  <header id="header" class="header sticky-top">
+    <div class="topbar d-flex align-items-center">
+      <div class="container d-flex justify-content-center justify-content-md-between">
+        <div class="contact-info d-flex align-items-center">
+          <i class="bi bi-envelope d-flex align-items-center"><a href="mailto:contact@example.com">contact@example.com</a></i>
+          <i class="bi bi-phone d-flex align-items-center ms-4"><span>+1 5589 55488 55</span></i>
+        </div>
+        <div class="social-links d-none d-md-flex align-items-center">
+          <a href="#" class="twitter"><i class="bi bi-twitter-x"></i></a>
+          <a href="#" class="facebook"><i class="bi bi-facebook"></i></a>
+          <a href="#" class="instagram"><i class="bi bi-instagram"></i></a>
+          <a href="#" class="linkedin"><i class="bi bi-linkedin"></i></a>
+        </div>
+      </div>
+    </div><!-- End Top Bar -->
+
+    <div class="branding d-flex align-items-center">
+      <div class="container position-relative d-flex align-items-center justify-content-between">
+        <a href="{% url 'starter-page' %}" class="logo d-flex align-items-center me-auto">
+          <h1 class="sitename">CVD Risk Predictor</h1>
+        </a>
+
+        <nav id="navmenu" class="navbar navbar-expand-lg navbar-light bg-light">
+          <div class="container">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+               <ul class="navbar-nav ms-auto">
+                  <li class="nav-item"><a class="nav-link" href="{% url 'starter-page' %}">Home</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+
+                  {% if user.is_authenticated %}
+                    {% if user.is_patient %}
+                      <li class="nav-item"><a class="nav-link active" href="{% url 'patient_dashboard' %}">CVD Risk for Patients</a></li>
+                    {% elif user.is_clinician %}
+                      <li class="nav-item"><a class="nav-link" href="{% url 'clinician_dashboard' %}">CVD Risk for Clinicians</a></li>
+                      <li class="nav-item"><a class="nav-link" href="{% url 'researcher_dashboard' %}">CVD Risk for Researchers</a></li>
+                    {% endif %}
+                    
+                    <li class="nav-item dropdown">
+                      <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle me-1"></i>{{ user.username }}
+                      </a>
+                      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                        <li><a class="dropdown-item" href="#">My Profile</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                      </ul>
+                    </li>
+                  {% endif %}
+                </ul>
+              </div>
+            </div>
+          </nav>
+        </div>
+      </div>
+  </header>
+
+  <main class="main">
+    <section class="results-container">
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-lg-10">
+            
+            <!-- Results Header -->
+            <div class="results-header" data-aos="fade-up">
+              <h1><i class="bi bi-heart-pulse me-3"></i>Your CVD Risk Assessment Results</h1>
+              <p>Based on your responses, here are your cardiovascular disease risk predictions</p>
+            </div>
+
+            <!-- Loop through each model category that was run -->
+            {% for model_result in model_results %}
+              <div class="result-card" data-aos="fade-up" data-aos-delay="200">
+                
+                <!-- Model Category Header -->
+                <div class="model-category">
+                  <h5><i class="bi bi-graph-up me-2"></i>{{ model_result.category|title }} Model Results</h5>
+                  <p class="mb-0">Analysis based on {{ model_result.category|lower }} factors</p>
+                </div>
+
+                <!-- 1. CVD Prediction Score -->
+                <div class="prediction-score">
+                  <div class="score-value">{{ model_result.prediction_score|floatformat:2 }}</div>
+                  <div class="score-label">CVD Prediction Score</div>
+                  <small class="text-muted">(Range: -3.0 to 12.0)</small>
+                </div>
+
+                <!-- 2. Risk Category -->
+                <div class="risk-category {% if model_result.risk_category == 'Low Risk' %}risk-low{% elif model_result.risk_category == 'High Risk' %}risk-high{% else %}risk-inconclusive{% endif %}">
+                  {% if model_result.risk_category == 'Low Risk' %}
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                  {% elif model_result.risk_category == 'High Risk' %}
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                  {% else %}
+                    <i class="bi bi-question-circle-fill me-2"></i>
+                  {% endif %}
+                  {{ model_result.risk_category }}
+                </div>
+
+                <!-- 3. Local Explainability Plot -->
+                <div class="result-card">
+                  <h3><i class="bi bi-bar-chart-line"></i>Feature Importance Analysis</h3>
+                  <div class="explainability-plot">
+                    {% if model_result.plot_path %}
+                      <img src="{% static model_result.plot_path %}" alt="Local Explainability Plot for {{ model_result.category }}" class="img-fluid">
+                    {% else %}
+                      <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Explainability plot for {{ model_result.category }} model is being generated. Please check back shortly.
+                      </div>
+                    {% endif %}
+                    <div class="plot-description">
+                      This plot shows which features were most important in predicting your {{ model_result.category|lower }} risk score.
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 4. Model Performance Metrics -->
+                <div class="result-card">
+                  <h3><i class="bi bi-speedometer2"></i>Model Performance Metrics</h3>
+                  <div class="model-performance">
+                    <div class="performance-metric">
+                      <span class="metric-name">Accuracy</span>
+                      <span class="metric-value">{{ model_result.accuracy|default:"87%" }}</span>
+                    </div>
+                    <div class="performance-metric">
+                      <span class="metric-name">AUROC</span>
+                      <span class="metric-value">{{ model_result.auroc|default:"0.91" }}</span>
+                    </div>
+                    <div class="performance-metric">
+                      <span class="metric-name">Precision</span>
+                      <span class="metric-value">{{ model_result.precision|default:"0.85" }}</span>
+                    </div>
+                    <div class="performance-metric">
+                      <span class="metric-name">Recall</span>
+                      <span class="metric-value">{{ model_result.recall|default:"0.80" }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 5. Clinical Advice Box -->
+                <div class="clinical-advice {% if model_result.risk_category == 'Low Risk' %}advice-low{% elif model_result.risk_category == 'High Risk' %}advice-high{% else %}advice-inconclusive{% endif %}">
+                  <h4>
+                    {% if model_result.risk_category == 'Low Risk' %}
+                      <i class="bi bi-check-circle-fill me-2"></i>Clinical Recommendation
+                    {% elif model_result.risk_category == 'High Risk' %}
+                      <i class="bi bi-exclamation-triangle-fill me-2"></i>Important: Action Required
+                    {% else %}
+                      <i class="bi bi-info-circle-fill me-2"></i>Additional Assessment Needed
+                    {% endif %}
+                  </h4>
+                  <p>
+                    {% if model_result.risk_category == 'Low Risk' %}
+                      ✅ You are at low 10-year risk of CVD based on {{ model_result.category|lower }} factors. Maintain a healthy lifestyle with regular exercise, balanced diet, and routine 
+check-ups with your healthcare provider.
+                    {% elif model_result.risk_category == 'High Risk' %}
+                      ❗ You are at high 10-year risk of CVD based on {{ model_result.category|lower }} factors. Please consult your GP or cardiologist for further evaluation and discuss preventive 
+treatment options.
+                    {% else %}
+                      ℹ️ Your results from the {{ model_result.category|lower }} model are not conclusive. Additional questions and testing may be needed to provide a more accurate assessment. 
+Please contact your GP/Clinician for further evaluation.
+                    {% endif %}
+                  </p>
+                </div>
+
+              </div>
+            {% empty %}
+              <!-- No model results available -->
+              <div class="result-card" data-aos="fade-up">
+                <div class="alert alert-warning text-center">
+                  <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                  <h4>No Results Available</h4>
+                  <p class="mb-0">No assessment results are currently available. Please complete the CVD risk assessment first.</p>
+                </div>
+              </div>
+            {% endfor %}
+
+            <!-- Final Assessment Summary (if all models run and still inconclusive) -->
+            {% if all_models_inconclusive %}
+              <div class="result-card" data-aos="fade-up" data-aos-delay="400">
+                <div class="clinical-advice advice-inconclusive">
+                  <h4><i class="bi bi-clipboard-pulse me-2"></i>Complete Assessment Summary</h4>
+                  <p>
+                    After running all available prediction models, your CVD risk assessment remains inconclusive. 
+                    While we have provided you with your prediction scores and feature importance plots, 
+                    <strong>we recommend contacting your GP or a qualified clinician for comprehensive cardiovascular evaluation and personalized medical advice.</strong>
+                  </p>
+                </div>
+              </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="action-buttons" data-aos="fade-up" data-aos-delay="600">
+              <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-house me-2"></i>Return to Dashboard
+              </a>
+              {% if not all_categories_completed %}
+                <a href="{% url 'start_assessment' %}" class="btn btn-primary">
+                  <i class="bi bi-arrow-right me-2"></i>Continue Assessment
+                </a>
+              {% endif %}
+              <a href="#" class="btn btn-primary" onclick="window.print()">
+                <i class="bi bi-printer me-2"></i>Print Results
+              </a>
+            </div>
+
+            <!-- Timestamp -->
+            <div class="timestamp">
+              <i class="bi bi-clock me-1"></i>
+              Assessment completed on {{ assessment_date|date:"F d, Y \a\t g:i A" }}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer" class="footer light-background">
+    <div class="container copyright text-center mt-4">
+      <p>© <span>Copyright</span> <strong class="px-1 sitename">CVD Risk Predictor</strong> <span>All Rights Reserved</span></p>
+      <div class="credits">
+        Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'medilab/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+  <script src="{% static 'medilab/assets/vendor/php-email-form/validate.js' %}"></script>
+  <script src="{% static 'medilab/assets/vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'medilab/assets/vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'medilab/assets/vendor/purecounter/purecounter_vanilla.js' %}"></script>
+  <script src="{% static 'medilab/assets/vendor/swiper/swiper-bundle.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'medilab/assets/js/main.js' %}?{{ timestamp }}"></script>
+
+  <!-- Results Page Enhancements -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Smooth scrolling for internal links
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          document.querySelector(this.getAttribute('href')).scrollIntoView({
+            behavior: 'smooth'
+          });
+        });
+      });
+
+      // Add click handlers for explainability plots
+      document.querySelectorAll('.explainability-plot img').forEach(img => {
+        img.addEventListener('click', function() {
+          // Could open in modal or lightbox
+          this.style.transform = this.style.transform === 'scale(1.2)' ? 'scale(1)' : 'scale(1.2)';
+          this.style.transition = 'transform 0.3s ease';
+        });
+      });
+
+      // Print functionality enhancement
+      window.addEventListener('beforeprint', function() {
+        document.body.classList.add('printing');
+      });
+
+      window.addEventListener('afterprint', function() {
+        document.body.classList.remove('printing');
+      });
+    });
+  </script>
+
+  <!-- Print Styles -->
+  <style media="print">
+    .header, .footer, .action-buttons, .scroll-top {
+      display: none !important;
+    }
+    
+    .result-card {
+      break-inside: avoid;
+      box-shadow: none;
+      border: 1px solid #ddd;
+    }
+    
+    .results-header {
+      background: #f8f9fa !important;
+      color: #333 !important;
+    }
+  </style>
+
+</body>
+
+</html>

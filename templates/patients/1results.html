@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  {% load static %}
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>CVD Risk Assessment - CVD Risk Predictor</title>
+  <meta name="description" content="">
+  <meta name="keywords" content="">
+
+  <!-- Favicons -->
+  <link href="{% static 'medilab/assets/img/favicon.png' %}" rel="icon">
+  <link href="{% static 'medilab/assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+  <link 
+href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" 
+rel="stylesheet">
+
+  <!-- Vendor CSS Files -->
+  <link href="{% static 'medilab/assets/vendor/bootstrap/css/bootstrap.min.css' %}" 
+rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" 
+rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/aos/aos.css' %}" rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/fontawesome-free/css/all.min.css' %}" 
+rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/glightbox/css/glightbox.min.css' %}" 
+rel="stylesheet">
+  <link href="{% static 'medilab/assets/vendor/swiper/swiper-bundle.min.css' %}" 
+rel="stylesheet">
+
+  <!-- Main CSS File -->
+  <link href="{% static 'medilab/assets/css/main.css' %}" rel="stylesheet">
+
+  <style>
+    .assessment-form {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+      padding: 2rem;
+    }
+    
+    .form-section {
+      margin-bottom: 2rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .form-section:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    
+    .form-section-title {
+      color: #1977cc;
+      margin-bottom: 1.5rem;
+    }
+    
+    .form-check-input:checked {
+      background-color: #1977cc;
+      border-color: #1977cc;
+    }
+    
+    .form-range::-webkit-slider-thumb {
+      background: #1977cc;
+    }
+    
+    .form-range::-moz-range-thumb {
+      background: #1977cc;
+    }
+    
+    .form-range::-ms-thumb {
+      background: #1977cc;
+    }
+    
+    .assessment-header {
+      background-color: #f8f9fa;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    
+    .progress-indicator {
+      margin: 2rem 0;
+    }
+    
+    .progress-bar {
+      background-color: #1977cc;
+    }
+    
+    .btn-nav {
+      min-width: 120px;
+    }
+  </style>
+</head>
+
+{% now "U" as timestamp %}
+
+<body class="assessment-page">
+
+  <header id="header" class="header sticky-top">
+    <div class="topbar d-flex align-items-center">
+      <div class="container d-flex justify-content-center justify-content-md-between">
+        <div class="contact-info d-flex align-items-center">
+          <i class="bi bi-envelope d-flex align-items-center"><a 
+href="mailto:contact@example.com">contact@example.com</a></i>
+          <i class="bi bi-phone d-flex align-items-center ms-4"><span>+1 5589 55488 
+55</span></i>
+        </div>
+        <div class="social-links d-none d-md-flex align-items-center">
+          <a href="#" class="twitter"><i class="bi bi-twitter-x"></i></a>
+          <a href="#" class="facebook"><i class="bi bi-facebook"></i></a>
+          <a href="#" class="instagram"><i class="bi bi-instagram"></i></a>
+          <a href="#" class="linkedin"><i class="bi bi-linkedin"></i></a>
+        </div>
+      </div>
+    </div><!-- End Top Bar -->
+
+    <div class="branding d-flex align-items-center">
+      <div class="container position-relative d-flex align-items-center 
+justify-content-between">
+        <a href="{% url 'starter-page' %}" class="logo d-flex align-items-center me-auto">
+          <!-- Uncomment the line below if you also wish to use an image logo -->
+          <!-- <img src="{% static 'medilab/assets/img/logo.png' %}" alt=""> -->
+          <h1 class="sitename">CVD Risk Predictor</h1>
+        </a>
+
+        <nav id="navmenu" class="navbar navbar-expand-lg navbar-light bg-light">
+          <div class="container">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" 
+data-bs-target="#navbarNav"
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+               <ul class="navbar-nav ms-auto">
+                  <li class="nav-item"><a class="nav-link" href="{% url 'starter-page' 
+%}">Home</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                  <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+
+                  <!-- Only show appropriate CVD Risk links based on user type -->
+                  {% if user.is_authenticated %}
+                    {% if user.is_patient %}
+                      <li class="nav-item"><a class="nav-link active" href="{% url 
+'patient_dashboard' %}">CVD Risk for Patients</a></li>
+                    {% elif user.is_clinician %}
+                      <li class="nav-item"><a class="nav-link" href="{% url 
+'clinician_dashboard' %}">CVD Risk for Clinicians</a></li>
+                      <li class="nav-item"><a class="nav-link" href="{% url 
+'researcher_dashboard' %}">CVD Risk for Researchers</a></li>
+                    {% endif %}
+                    
+                    <!-- User dropdown menu -->
+                    <li class="nav-item dropdown">
+                      <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" 
+role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-person-circle me-1"></i>{{ user.username }}
+                      </a>
+                      <ul class="dropdown-menu dropdown-menu-end" 
+aria-labelledby="navbarDropdown">
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                      </ul>
+                    </li>
+                  {% endif %}
+                </ul>
+              </div>
+            </div>
+          </nav>
+        </div>
+      </div>
+  </header>
+
+  <main class="main">
+    <section class="assessment-section py-5">
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-10 mx-auto">
+            <!-- Assessment Header -->
+            <div class="assessment-header" data-aos="fade-up">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h2>Cardiovascular Risk Assessment</h2>
+                  <p class="mb-0">Complete the form below to assess your cardiovascular disease 
+risk.</p>
+                </div>
+                <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-secondary">
+                  <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+                </a>
+              </div>
+            </div>
+            
+            <!-- Progress Bar -->
+            <div class="progress-indicator" data-aos="fade-up">
+              <div class="d-flex justify-content-between mb-1">
+                <span>Progress</span>
+                <span id="progress-percentage">0%</span>
+              </div>
+              <div class="progress" style="height: 10px;">
+                <div class="progress-bar" role="progressbar" style="width: 0%;" 
+aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+              </div>
+            </div>
+            
+            <!-- Assessment Form -->
+            <div class="assessment-form" data-aos="fade-up" data-aos-delay="200">
+              <form id="cvd-assessment-form" method="POST">
+                {% csrf_token %}
+                
+                <!-- Personal Information Section -->
+                <div class="form-section" id="section-1">
+                  <h3 class="form-section-title">Personal Information</h3>
+                  
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label for="age" class="form-label">Age</label>
+                      <input type="number" class="form-control" id="age" name="age" min="18" 
+max="120" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label class="form-label">Gender</label>
+                      <div>
+                        <div class="form-check form-check-inline">
+                          <input class="form-check-input" type="radio" name="gender" 
+id="gender-male" value="male" required>
+                          <label class="form-check-label" for="gender-male">Male</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                          <input class="form-check-input" type="radio" name="gender" 
+id="gender-female" value="female">
+                          <label class="form-check-label" for="gender-female">Female</label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label for="ethnicity" class="form-label">Ethnicity</label>
+                      <select class="form-select" id="ethnicity" name="ethnicity" required>
+                        <option value="" selected disabled>Select your ethnicity</option>
+                        <option value="white">White</option>
+                        <option value="black">Black</option>
+                        <option value="asian">Asian</option>
+                        <option value="hispanic">Hispanic/Latino</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label for="family_history" class="form-label">Family History of 
+CVD</label>
+                      <select class="form-select" id="family_history" name="family_history" 
+required>
+                        <option value="" selected disabled>Select an option</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                        <option value="unknown">Unknown</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Health Metrics Section -->
+                <div class="form-section" id="section-2">
+                  <h3 class="form-section-title">Health Metrics</h3>
+                  
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label for="height" class="form-label">Height (cm)</label>
+                      <input type="number" class="form-control" id="height" name="height" 
+min="100" max="250" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label for="weight" class="form-label">Weight (kg)</label>
+                      <input type="number" class="form-control" id="weight" name="weight" 
+min="30" max="300" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label for="systolic_bp" class="form-label">Systolic Blood Pressure 
+(mmHg)</label>
+                      <input type="number" class="form-control" id="systolic_bp" 
+name="systolic_bp" min="70" max="250" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label for="diastolic_bp" class="form-label">Diastolic Blood Pressure 
+(mmHg)</label>
+                      <input type="number" class="form-control" id="diastolic_bp" 
+name="diastolic_bp" min="40" max="150" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label for="total_cholesterol" class="form-label">Total Cholesterol 
+(mg/dL)</label>
+                      <input type="number" class="form-control" id="total_cholesterol" 
+name="total_cholesterol" min="100" max="500" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label for="hdl_cholesterol" class="form-label">HDL Cholesterol 
+(mg/dL)</label>
+                      <input type="number" class="form-control" id="hdl_cholesterol" 
+name="hdl_cholesterol" min="20" max="100" required>
+                    </div>
+                  </div>
+                  min="20" max="100" required>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Lifestyle Factors Section -->
+                <div class="form-section" id="section-3">
+                  <h3 class="form-section-title">Lifestyle Factors</h3>
+                  
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Smoking Status</label>
+                      <div>
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="smoking_status" 
+id="smoking-never" value="never" required>
+                          <label class="form-check-label" for="smoking-never">Never 
+smoked</label>
+                        </div>
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="smoking_status" 
+id="smoking-former" value="former">
+                          <label class="form-check-label" for="smoking-former">Former 
+smoker</label>
+                        </div>
+                        <div class="form-check">
+                          <input class="form-check-input" type="radio" name="smoking_status" 
+id="smoking-current" value="current">
+                          <label class="form-check-label" for="smoking-current">Current 
+smoker</label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label for="physical_activity" class="form-label">Physical Activity 
+(minutes per week)</label>
+                      <input type="number" class="form-control" id="physical_activity" 
+name="physical_activity" min="0" max="1000" required>
+                    </div>
+                    
+                    <div class="col-12">
+                      <label for="diet_quality" class="form-label">Diet Quality</label>
+                      <div class="range-labels d-flex justify-content-between">
+                        <span>Poor</span>
+                        <span>Average</span>
+                        <span>Excellent</span>
+                      </div>
+                      <input type="range" class="form-range" id="diet_quality" 
+name="diet_quality" min="1" max="10" value="5">
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label for="alcohol_consumption" class="form-label">Alcohol Consumption 
+(drinks per week)</label>
+                      <input type="number" class="form-control" id="alcohol_consumption" 
+name="alcohol_consumption" min="0" max="50" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label for="stress_level" class="form-label">Stress Level</label>
+                      <div class="range-labels d-flex justify-content-between">
+                        <span>Low</span>
+                        <span>Moderate</span>
+                        <span>High</span>
+                      </div>
+                      <input type="range" class="form-range" id="stress_level" 
+name="stress_level" min="1" max="10" value="5">
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Medical History Section -->
+                <div class="form-section" id="section-4">
+                  <h3 class="form-section-title">Medical History</h3>
+                  
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="form-label">Do you have diabetes?</label>
+                      <div>
+                        <div class="form-check form-check-inline">
+                          <input class="form-check-input" type="radio" name="diabetes" 
+id="diabetes-yes" value="yes" required>
+                          <label class="form-check-label" for="diabetes-yes">Yes</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                          <input class="form-check-input" type="radio" name="diabetes" 
+id="diabetes-no" value="no">
+                          <label class="form-check-label" for="diabetes-no">No</label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <label class="form-label">Do you have hypertension?</label>
+                      <div>
+                        <div class="form-check form-check-inline">
+                          <input class="form-check-input" type="radio" name="hypertension" 
+id="hypertension-yes" value="yes" required>
+                          <label class="form-check-label" for="hypertension-yes">Yes</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                          <input class="form-check-input" type="radio" name="hypertension" 
+id="hypertension-no" value="no">
+                          <label class="form-check-label" for="hypertension-no">No</label>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="col-12">
+                      <label class="form-label">Are you currently taking any of these 
+medications?</label>
+                      <div class="row g-2">
+                        <div class="col-md-6">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="medications" 
+id="med-statins" value="statins">
+                            <label class="form-check-label" for="med-statins">Statins 
+(cholesterol-lowering)</label>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="medications" 
+id="med-antihypertensives" value="antihypertensives">
+                            <label class="form-check-label" 
+for="med-antihypertensives">Antihypertensives (blood pressure)</label>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="medications" 
+id="med-aspirin" value="aspirin">
+                            <label class="form-check-label" for="med-aspirin">Aspirin</label>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="medications" 
+id="med-anticoagulants" value="anticoagulants">
+                            <label class="form-check-label" 
+for="med-anticoagulants">Anticoagulants</label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="col-12">
+                      <label for="other_conditions" class="form-label">Other Medical 
+Conditions</label>
+                      <textarea class="form-control" id="other_conditions" 
+name="other_conditions" rows="3" placeholder="Please list any other medical conditions you 
+have..."></textarea>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Form Navigation -->
+                <div class="d-flex justify-content-between mt-4">
+                  <button type="button" id="prev-btn" class="btn btn-outline-primary btn-nav" 
+disabled>
+                    <i class="bi bi-arrow-left me-2"></i>Previous
+                  </button>
+                  <button type="button" id="next-btn" class="btn btn-primary btn-nav">
+                    Next<i class="bi bi-arrow-right ms-2"></i>
+                  </button>
+                  <button type="submit" id="submit-btn" class="btn btn-success btn-nav" 
+style="display: none;">
+                    Submit<i class="bi bi-check-circle ms-2"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer" class="footer light-background">
+    <div class="container copyright text-center mt-4">
+      <p>© <span>Copyright</span> <strong class="px-1 sitename">Medilab</strong> <span>All 
+Rights Reserved</span></p>
+      <div class="credits">
+        Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed by <a 
+href="https://themewagon.com">ThemeWagon</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scroll Top -->
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center 
+justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+  <!-- Preloader -->
+  <div id="preloader"></div>
+
+  <!-- Vendor JS Files -->
+  <script src="{% static 'medilab/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' 
+%}"></script>
+  <script src="{% static 'medilab/assets/vendor/php-email-form/validate.js' %}"></script>
+  <script src="{% static 'medilab/assets/vendor/aos/aos.js' %}"></script>
+  <script src="{% static 'medilab/assets/vendor/glightbox/js/glightbox.min.js' %}"></script>
+  <script src="{% static 'medilab/assets/vendor/purecounter/purecounter_vanilla.js' 
+%}"></script>
+  <script src="{% static 'medilab/assets/vendor/swiper/swiper-bundle.min.js' %}"></script>
+
+  <!-- Main JS File -->
+  <script src="{% static 'medilab/assets/js/main.js' %}?{{ timestamp }}"></script>
+
+  <!-- Form Navigation Script -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('cvd-assessment-form');
+      const sections = document.querySelectorAll('.form-section');
+      const prevBtn = document.getElementById('prev-btn');
+      const nextBtn = document.getElementById('next-btn');
+      const submitBtn = document.getElementById('submit-btn');
+      const progressBar = document.querySelector('.progress-bar');
+      const progressPercentage = document.getElementById('progress-percentage');
+      
+      let currentSection = 0;
+      
+      // Show the current section and hide others
+      function showSection(sectionIndex) {
+        sections.forEach((section, index) => {
+          section.style.display = index === sectionIndex ? 'block' : 'none';
+        });
+        
+        // Update buttons
+        prevBtn.disabled = sectionIndex === 0;
+        
+        if (sectionIndex === sections.length - 1) {
+          nextBtn.style.display = 'none';
+          submitBtn.style.display = 'block';
+        } else {
+          nextBtn.style.display = 'block';
+          submitBtn.style.display = 'none';
+        }
+        
+        // Update progress
+        const progress = ((sectionIndex + 1) / sections.length) * 100;
+        progressBar.style.width = `${progress}%`;
+        progressBar.setAttribute('aria-valuenow', progress);
+        progressPercentage.textContent = `${Math.round(progress)}%`;
+      }
+      
+      // Initialize the form
+      showSection(currentSection);
+      
+      // Next button click
+      nextBtn.addEventListener('click', function() {
+        // Validate current section
+        const inputs = sections[currentSection].querySelectorAll('input[required], 
+select[required]');
+        let isValid = true;
+        
+        inputs.forEach(input => {
+          if (!input.value) {
+            isValid = false;
+            input.classList.add('is-invalid');
+          } else {
+            input.classList.remove('is-invalid');
+          }
+        });
+        
+        if (isValid && currentSection < sections.length - 1) {
+          currentSection++;
+          showSection(currentSection);
+          window.scrollTo(0, 0);
+        }
+      });
+      
+      // Previous button click
+      prevBtn.addEventListener('click', function() {
+        if (currentSection > 0) {
+          currentSection--;
+          showSection(currentSection);
+          window.scrollTo(0, 0);
+        }
+      });
+      
+      // Form submission
+      form.addEventListener('submit', function(event) {
+        // Final validation could be added here
+        // For now, we'll just let the form submit
+      });
+    });
+  </script>
+
+</body>
+
+</html>
