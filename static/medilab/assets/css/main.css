@@ -64,6 +64,7 @@ body {
   color: var(--default-color);
   background-color: var(--background-color);
   font-family: var(--default-font);
+  padding-top: 0;
 }
 
 a {
@@ -222,18 +223,22 @@ h6 {
 # Global Header
 --------------------------------------------------------------*/
 .header {
-  color: var(--default-color);
-  transition: all 0.5s;
-  z-index: 997;
-  background-color: var(--background-color);
+  position: static;
+  top: auto;
+  left: auto;
+  width: 100%;
+  z-index: auto;
 }
 
 .header .topbar {
-  background-color: var(--accent-color);
-  height: 40px;
-  padding: 0;
-  font-size: 14px;
-  transition: all 0.5s;
+  position: static;
+  z-index: auto;
+}
+
+#header {
+  position: static;
+  z-index: auto;
+  margin-top: 10px;
 }
 
 .header .topbar .contact-info i {
@@ -767,14 +772,14 @@ h6 {
   bottom: 15px;
   z-index: 99999;
   background-color: var(--accent-color);
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
   transition: all 0.4s;
 }
 
 .scroll-top i {
-  font-size: 24px;
+  font-size: 36px;
   color: var(--contrast-color);
   line-height: 0;
 }
@@ -1726,4 +1731,43 @@ section,
 --------------------------------------------------------------*/
 .starter-section {
   /* Add your styles here */
+}
+
+header#header.fixed-top {
+  top: 40px;
+}
+
+/* Ensure .topbar is always visible and above the header */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1040;
+}
+
+header#header.fixed-top {
+  z-index: 1030;
+}
+
+.dark-background .scroll-top i {
+  color: #fff !important;
+}
+
+body.dark-mode .scroll-top i.bi-arrow-up-short {
+  color: #fff !important;
+  fill: #fff !important;
+  stroke: #fff !important;
+}
+
+body.dark-mode .scroll-top i.bi-arrow-up-short::before {
+  color: #fff !important;
+  fill: #fff !important;
+  stroke: #fff !important;
+}
+
+body.dark-mode a.scroll-top i.bi-arrow-up-short::before {
+  color: #fff !important;
+  fill: #fff !important;
+  stroke: #fff !important;
 }

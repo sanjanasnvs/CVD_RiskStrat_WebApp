@@ -84,7 +84,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "CVD_Risk",
 	"USER": "root",
-	"PASSWORD": "Llama123@",
+	"PASSWORD": "first123",
 	"HOST": "localhost",
 	"PORT": "3306",
 	"OPTIONS": {

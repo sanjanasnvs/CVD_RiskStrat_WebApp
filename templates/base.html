@@ -1,0 +1,307 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>{% block title %}CVD Risk Prediction{% endblock %}</title>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+
+    <!-- Vendor CSS Files -->
+    <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+    <!-- <link href="{% static 'assets/vendor/boxicons/css/boxicons.min.css' %}" rel="stylesheet"> -->
+    <link href="{% static 'assets/vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+    <!-- <link href="{% static 'assets/vendor/remixicon/remixicon.css' %}" rel="stylesheet"> -->
+    <link href="{% static 'assets/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+    <link href="{% static 'assets/vendor/aos/aos.css' %}" rel="stylesheet">
+
+    <!-- Template Main CSS File -->
+    <link href="{% static 'assets/css/main.css' %}?v=1.1" rel="stylesheet">
+</head>
+
+<body>
+    <div class="header">
+        <!-- ======= Topbar ======= -->
+        <div class="topbar d-flex align-items-center" style="background: #1977cc; color: #fff; font-size: 1rem;">
+          <div class="container d-flex justify-content-center justify-content-md-between">
+            <div class="contact-info d-flex align-items-center">
+              <span style="color: #fff; font-weight: 600; font-size: 1.05rem;">
+                <a href="https://www.kcl.ac.uk/" target="_blank" rel="noopener" style="color: #fff; font-weight: 700; text-decoration: none;">King's College London</a>
+                <span style="margin: 0 8px;">|</span>
+                <a href="https://www.bhf.org.uk/" target="_blank" rel="noopener" style="color: #fff; font-weight: 700; text-decoration: none;">British Heart Foundation</a>
+              </span>
+            </div>
+            <div class="email-info d-flex align-items-center">
+              <i class="bi bi-envelope d-flex align-items-center me-2"></i>
+              <a href="mailto:konstantinos.theofilatos@kcl.ac.uk" style="color: #fff; font-weight: 600; text-decoration: none;">konstantinos.theofilatos@kcl.ac.uk</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======= Header ======= -->
+        <header id="header">
+            <div class="container d-flex align-items-center">
+                <nav id="navbar" class="navbar order-last order-lg-0 me-auto w-100">
+                    <ul class="navmenu d-flex align-items-center justify-content-end w-100" style="gap: 1.5rem; list-style: none; margin-bottom: 0; padding-left: 0; background: none;">
+                        <li>
+                            <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
+                        </li>
+                        {% if user.is_authenticated and user.is_superuser %}
+                            <li>
+                                <a href="{% url 'admin_panel' %}" class="{% if request.resolver_match.url_name == 'admin_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Admin Panel</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'patient_risk_panel' %}" class="{% if request.resolver_match.url_name == 'patient_risk_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Patient Risk Panel</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'batch_prediction' %}" class="{% if request.resolver_match.url_name == 'batch_prediction' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Batch CVD Risk Prediction</a>
+                            </li>
+                        {% elif user.is_authenticated and user.is_staff %}
+                            <li>
+                                <a href="{% url 'admin_panel' %}" class="{% if request.resolver_match.url_name == 'admin_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Admin Panel</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'patient_risk_panel' %}" class="{% if request.resolver_match.url_name == 'patient_risk_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Patient Risk Panel</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'batch_prediction' %}" class="{% if request.resolver_match.url_name == 'batch_prediction' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Batch CVD Risk Prediction</a>
+                            </li>
+                        {% elif user.is_authenticated and user.role == 'clinician_approved' %}
+                            <li>
+                                <a href="{% url 'patient_risk_panel' %}" class="{% if request.resolver_match.url_name == 'patient_risk_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Patient Risk Panel</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'batch_prediction' %}" class="{% if request.resolver_match.url_name == 'batch_prediction' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Batch CVD Risk Prediction</a>
+                            </li>
+                        {% endif %}
+                        <li>
+                            <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">About</a>
+                        </li>
+                        <li>
+                            <a href="{% url 'contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Contact</a>
+                        </li>
+                        {% if user.is_authenticated %}
+                            <li>
+                                <a href="{% url 'logout' %}" class="{% if request.resolver_match.url_name == 'logout' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Logout</a>
+                            </li>
+                        {% else %}
+                            <li>
+                                <a href="{% url 'login' %}" class="{% if request.resolver_match.url_name == 'login' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Login</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'signup' %}" class="{% if request.resolver_match.url_name == 'signup' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Create Account</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'request_access' %}" class="{% if request.resolver_match.url_name == 'request_access' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Request Access</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                <div class="accessibility-menu-toggle ms-3">
+                    <i class="bi bi-universal-access" id="accessibility-icon" style="font-size: 1.5rem; cursor: pointer;"></i>
+                </div>
+            </div>
+        </header>
+    </div>
+
+    <!-- Accessibility Panel -->
+    <div id="accessibility-panel" class="accessibility-panel">
+        <div class="panel-header d-flex justify-content-between align-items-center p-3 border-bottom">
+            <h5 class="m-0">Accessibility Preferences</h5>
+            <button type="button" class="btn-close" id="close-accessibility-panel" aria-label="Close"></button>
+        </div>
+        <div class="panel-body p-3">
+            <div class="accessibility-feature-card" id="dark-mode-feature-card">
+                <i class="bi bi-moon" id="dark-mode-icon"></i>
+                <span id="dark-mode-text">Dark Mode</span>
+                <label class="switch ms-auto">
+                    <input type="checkbox" id="dark-mode-switch">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <div class="accessibility-feature-card" id="font-size-feature-card">
+                <i class="bi bi-type me-2"></i>
+                <span>Font Size</span>
+                <div class="ms-auto d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary me-2" id="decrease-text-btn"><i class="bi bi-dash"></i></button>
+                    <span id="current-font-size" style="min-width: 40px; text-align: center;">16px</span>
+                    <button class="btn btn-sm btn-outline-secondary ms-2" id="increase-text-btn"><i class="bi bi-plus"></i></button>
+                </div>
+            </div>
+
+            <div class="accessibility-feature-card" id="highlight-link-feature-card">
+                <i class="bi bi-link" id="highlight-link-icon"></i>
+                <span id="highlight-link-text">Highlight Links</span>
+                <label class="switch ms-auto">
+                    <input type="checkbox" id="highlight-link-switch">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <div class="accessibility-feature-card" id="highlight-title-feature-card">
+                <i class="bi bi-type-h1" id="highlight-title-icon"></i>
+                <span id="highlight-title-text">Highlight Titles</span>
+                <label class="switch ms-auto">
+                    <input type="checkbox" id="highlight-title-switch">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <div class="accessibility-feature-card" id="readable-font-feature-card">
+                <i class="bi bi-fonts" id="readable-font-icon"></i>
+                <span id="readable-font-text">Readable Font</span>
+                <label class="switch ms-auto">
+                    <input type="checkbox" id="readable-font-switch">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <!-- New Feature: Line Height and Letter Spacing -->
+            <div class="accessibility-feature-card" id="line-spacing-feature-card">
+                <i class="bi bi-text-height me-2"></i>
+                <span>Line Height</span>
+                <div class="ms-auto d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary me-2" id="decrease-line-height-btn"><i class="bi bi-dash"></i></button>
+                    <span id="current-line-height" style="min-width: 40px; text-align: center;">1.5</span>
+                    <button class="btn btn-sm btn-outline-secondary ms-2" id="increase-line-height-btn"><i class="bi bi-plus"></i></button>
+                </div>
+            </div>
+            <div class="accessibility-feature-card" id="letter-spacing-feature-card">
+                <i class="bi bi-text-width me-2"></i>
+                <span>Letter Spacing</span>
+                <div class="ms-auto d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-secondary me-2" id="decrease-letter-spacing-btn"><i class="bi bi-dash"></i></button>
+                    <span id="current-letter-spacing" style="min-width: 40px; text-align: center;">0px</span>
+                    <button class="btn btn-sm btn-outline-secondary ms-2" id="increase-letter-spacing-btn"><i class="bi bi-plus"></i></button>
+                </div>
+            </div>
+            <!-- Other features will be added here -->
+        </div>
+    </div>
+
+    <main id="main">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- ======= Footer ======= -->
+    <footer id="footer" class="footer light-background">
+      <div class="container footer-top">
+        <div class="row gy-4">
+          <div class="col-lg-4 col-md-6 footer-about">
+            <a href="index.html" class="logo d-flex align-items-center">
+              <span class="sitename">CVD Risk Predictor</span>
+            </a>
+            <div class="footer-contact pt-3">
+              <p>King's College London,</p>
+              <p>Denmark Hill Campus,</p>
+              <p>10 Cutcombe Road,</p>
+              <p>SE5 9RJ</p>
+              <p class="mt-3"><strong>Email:</strong> <span>konstantinos.theofilatos@kcl.ac.uk</span></p>
+            </div>
+            <div class="social-links d-flex mt-4">
+              <a href=""><i class="bi bi-twitter-x"></i></a>
+              <a href=""><i class="bi bi-facebook"></i></a>
+              <a href=""><i class="bi bi-instagram"></i></a>
+              <a href=""><i class="bi bi-linkedin"></i></a>
+            </div>
+          </div>
+
+          <div class="col-lg-2 col-md-3 footer-links">
+            <h4>Useful Links</h4>
+            <ul>
+              <li><a href="#">Home</a></li>
+              <li><a href="#">About us</a></li>
+              <li><a href="#">Services</a></li>
+              <li><a href="#">Terms of service</a></li>
+              <li><a href="#">Privacy policy</a></li>
+            </ul>
+          </div>
+
+          <div class="col-lg-2 col-md-3 footer-links">
+            <h4>Our Services</h4>
+            <ul>
+              <li><a href="#">Risk Assessment</a></li>
+              <li><a href="#">Health Monitoring</a></li>
+              <li><a href="#">Preventive Care</a></li>
+              <li><a href="#">Patient Education</a></li>
+              <li><a href="#">Clinician Resources</a></li>
+            </ul>
+          </div>
+
+          <div class="col-lg-2 col-md-3 footer-links">
+            <h4>For Patients</h4>
+            <ul>
+              <li><a href="#">How It Works</a></li>
+              <li><a href="#">Request Access</a></li>
+              <li><a href="#">Patient FAQ</a></li>
+              <li><a href="#">Success Stories</a></li>
+              <li><a href="#">Support</a></li>
+            </ul>
+          </div>
+
+          <div class="col-lg-2 col-md-3 footer-links">
+            <h4>For Clinicians</h4>
+            <ul>
+              <li><a href="#">Clinical Resources</a></li>
+              <li><a href="#">Research</a></li>
+              <li><a href="#">Refer a Patient</a></li>
+              <li><a href="#">Training</a></li>
+              <li><a href="#">Contact Us</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="container copyright text-center mt-4">
+        <p>© <span>Copyright</span> <strong class="px-1 sitename">CVD Risk Predictor</strong> <span>All Rights Reserved</span></p>
+        <div class="credits">
+        </div>
+      </div>
+    </footer>
+
+    <div id="preloader"></div>
+    <a href="#" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+    <!-- Vendor JS Files -->
+    <script src="{% static 'assets/vendor/purecounter/purecounter_vanilla.js' %}"></script>
+    <script src="{% static 'assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'assets/vendor/glightbox/js/glightbox.min.js' %}"></script>
+    <script src="{% static 'assets/vendor/swiper/swiper-bundle.min.js' %}"></script>
+    <script src="{% static 'assets/vendor/php-email-form/validate.js' %}"></script>
+    <script src="{% static 'assets/vendor/aos/aos.js' %}"></script>
+
+    <!-- Template Main JS File -->
+    <script src="{% static 'assets/js/main.js' %}"></script>
+
+    {% block extra_js %}{% endblock %}
+
+    <script>
+        const modeToggle = document.querySelector('.mode-toggle');
+        const modeIcon = document.querySelector('#mode-icon');
+        const body = document.body;
+
+        // Check for saved theme preference on load
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            body.classList.add(savedTheme);
+            if (savedTheme === 'dark-mode') {
+                modeIcon.classList.remove('bi-moon');
+                modeIcon.classList.add('bi-sun');
+            }
+        }
+    </script>
+</body>
+</html> 

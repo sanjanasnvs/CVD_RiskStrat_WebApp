@@ -1,0 +1,561 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Patient Risk Panel - CVD Risk Predictor{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dashboard-container {
+    min-height: calc(100vh - 200px);
+    padding-top: 30px;
+    padding-bottom: 30px;
+  }
+  .dashboard-header {
+    background: linear-gradient(135deg, #1977cc 0%, #0056b3 100%);
+    color: #fff;
+    border-radius: 24px;
+    padding: 2.5rem 2rem 2rem 2rem;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 10px 30px rgba(25, 119, 204, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+  .dashboard-header .icon {
+    font-size: 2.8rem;
+    margin-right: 1.5rem;
+  }
+  .dashboard-header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    letter-spacing: -1px;
+  }
+  .dashboard-header p {
+    font-size: 1.1rem;
+    opacity: 0.95;
+    margin-bottom: 0;
+  }
+  .stats-row {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+  }
+  .stats-card {
+    flex: 1 1 180px;
+    background: #fff;
+    border-radius: 18px;
+    padding: 1.5rem 1.2rem;
+    box-shadow: 0 4px 18px rgba(25, 119, 204, 0.07);
+    border-left: 6px solid #1977cc;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 160px;
+  }
+  .stats-card.high-risk { border-left-color: #dc3545; }
+  .stats-card.medium-risk { border-left-color: #ffc107; }
+  .stats-card.low-risk { border-left-color: #28a745; }
+  .stats-number {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0.2rem;
+    line-height: 1;
+  }
+  .stats-label {
+    color: #6c757d;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+  }
+  .alert-banner { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); color: white; border-radius: 10px; padding: 1rem 1.5rem; margin-bottom: 2rem; border: none; animation: pulse-alert 2s infinite; }
+  @keyframes pulse-alert { 0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }
+  .patient-table {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 18px rgba(25, 119, 204, 0.07);
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .table thead th {
+    background-color: #f8f9fa;
+    border: none;
+    font-weight: 700;
+    color: #2c4964;
+    padding: 1rem;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+  }
+  .table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    border-top: 1px solid #f0f0f0;
+    font-size: 1.05rem;
+  }
+  .avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #1977cc;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.3rem;
+    margin-right: 1rem;
+  }
+  .risk-badge {
+    padding: 0.5rem 1.1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none;
+  }
+  .risk-high { background-color: #f8d7da; color: #721c24; }
+  .risk-intermediate { background-color: #fff3cd; color: #856404; }
+  .risk-low { background-color: #d4edda; color: #155724; }
+  .risk-pending { background-color: #e2e3e5; color: #383d41; }
+  .action-btn {
+    padding: 0.5rem 1.1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    border: none;
+    margin-right: 0.3rem;
+  }
+  .action-btn.btn-view { background-color: #1977cc; color: #fff; }
+  .action-btn.btn-contact { background-color: #28a745; color: #fff; }
+  .action-btn.btn-view:hover { background-color: #125a9c; }
+  .action-btn.btn-contact:hover { background-color: #1e7e34; }
+  .filter-card {
+    background: #fff !important;
+    border-radius: 24px !important;
+    box-shadow: 0 4px 18px rgba(25, 119, 204, 0.07) !important;
+    border: none !important;
+    padding: 1.2rem 2rem !important;
+    margin: 2rem 0 2rem 0 !important;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 1.5rem;
+    position: relative;
+    z-index: 1;
+    overflow: visible;
+    min-height: 72px;
+  }
+  .filter-card .input-group {
+    flex: 1 1 350px;
+    min-width: 250px;
+    margin-bottom: 0;
+  }
+  .filter-card .search-box {
+    border-radius: 30px;
+    border: 1.5px solid #e9ecef;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.1rem;
+    box-shadow: 0 2px 8px rgba(25, 119, 204, 0.04);
+    width: 100%;
+    margin-bottom: 0;
+  }
+  .filter-card .filter-btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-left: auto;
+  }
+  .filter-btn {
+    border-radius: 20px;
+    padding: 0.5rem 1.5rem;
+    margin: 0;
+    border: 1.5px solid #1977cc;
+    background: #fff;
+    color: #1977cc;
+    font-weight: 500;
+    transition: all 0.2s;
+    box-shadow: none;
+    outline: none;
+    font-size: 1rem;
+  }
+  .filter-btn.active, .filter-btn:focus {
+    background: #1977cc;
+    color: #fff;
+    border-color: #1977cc;
+    box-shadow: 0 4px 12px rgba(25, 119, 204, 0.10);
+  }
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #6c757d;
+    font-size: 1.2rem;
+  }
+  .empty-state i {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+  .notification-dot { position: absolute; top: -5px; right: -5px; width: 12px; height: 12px; background: #dc3545; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+  .patient-row.high-risk-alert { background-color: #fff5f5; border-left: 4px solid #dc3545; }
+  .last-assessment { font-size: 0.85rem; color: #6c757d; }
+  .risk-score-display { font-size: 1.2rem; font-weight: bold; }
+  @media (max-width: 900px) {
+    .filter-card {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+      padding: 1rem 1rem !important;
+    }
+    .filter-card .filter-btn-group {
+      margin-left: 0;
+      justify-content: flex-start;
+    }
+  }
+  .bubble-group .bubble-btn {
+    background: #fff !important;
+    color: #1977cc !important;
+    border-color: #1977cc !important;
+    transition: background 0.2s, color 0.2s;
+  }
+  .bubble-group .bubble-btn.active,
+  .bubble-group .bubble-btn:active {
+    background: #1977cc !important;
+    color: #fff !important;
+    border-color: #1977cc !important;
+    box-shadow: 0 0 0 2px #1977cc33;
+  }
+  .patient-cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .patient-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 18px rgba(25, 119, 204, 0.07);
+    padding: 1.2rem 1.5rem;
+    transition: background 0.2s, box-shadow 0.2s;
+    display: flex;
+    align-items: center;
+  }
+  .patient-card:hover {
+    background: #f5f6fa;
+    box-shadow: 0 6px 24px rgba(25, 119, 204, 0.10);
+  }
+  .patient-card-info {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+  }
+  .patient-cards-header > div {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .patient-card > .d-flex > .ms-3.flex-grow-1 { flex: 2; min-width: 180px; }
+  .patient-card-info { flex: 4; }
+  .patient-card > .d-flex > div:last-child { min-width: 120px; flex: 1; }
+  body.dark-mode .dashboard-container {
+    background: #181818;
+  }
+  body.dark-mode .dashboard-header {
+    background: linear-gradient(135deg, #232a36 0%, #0d223a 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 10px 30px rgba(25, 119, 204, 0.10);
+  }
+  body.dark-mode .stats-card {
+    background: #232a36 !important;
+    color: #fff !important;
+    box-shadow: 0 4px 18px rgba(25, 119, 204, 0.04);
+    border-left: 6px solid #1977cc;
+  }
+  body.dark-mode .stats-card .stats-number,
+  body.dark-mode .stats-card .stats-label {
+    color: #fff !important;
+  }
+  body.dark-mode .stats-card.high-risk { border-left-color: #dc3545; }
+  body.dark-mode .stats-card.medium-risk { border-left-color: #ffc107; }
+  body.dark-mode .stats-card.low-risk { border-left-color: #28a745; }
+  body.dark-mode .stats-label {
+    color: #b0b0b0 !important;
+  }
+  body.dark-mode .search-card,
+  body.dark-mode .filter-card {
+    background: #232a36 !important;
+    color: #f1f1f1 !important;
+    box-shadow: 0 4px 18px rgba(25, 119, 204, 0.04) !important;
+  }
+  body.dark-mode .search-box {
+    background: #232a36 !important;
+    color: #f1f1f1 !important;
+    border: 1.5px solid #333 !important;
+  }
+  body.dark-mode .input-group-text {
+    background: #232a36 !important;
+    color: #b0b0b0 !important;
+    border-color: #333 !important;
+  }
+  body.dark-mode .bubble-group .bubble-btn {
+    background: #232a36 !important;
+    color: #90cdf4 !important;
+    border-color: #1977cc !important;
+  }
+  body.dark-mode .bubble-group .bubble-btn.active,
+  body.dark-mode .bubble-group .bubble-btn:active {
+    background: #1977cc !important;
+    color: #fff !important;
+    border-color: #1977cc !important;
+    box-shadow: 0 0 0 2px #1977cc33;
+  }
+  body.dark-mode .patient-cards-header {
+    background: #232a36 !important;
+    color: #f1f1f1 !important;
+  }
+  body.dark-mode .patient-card {
+    background: #232a36 !important;
+    color: #f1f1f1 !important;
+    box-shadow: 0 4px 18px rgba(25, 119, 204, 0.04);
+  }
+  body.dark-mode .patient-card:hover {
+    background: #232a36 !important;
+    box-shadow: 0 6px 24px rgba(25, 119, 204, 0.10);
+  }
+  body.dark-mode .avatar-circle {
+    background: #1977cc !important;
+    color: #fff !important;
+  }
+  body.dark-mode .risk-badge.risk-high {
+    background-color: #3a2323 !important;
+    color: #ff6b6b !important;
+  }
+  body.dark-mode .risk-badge.risk-intermediate {
+    background-color: #3a3623 !important;
+    color: #ffe066 !important;
+  }
+  body.dark-mode .risk-badge.risk-low {
+    background-color: #233a23 !important;
+    color: #51fa7b !important;
+  }
+  body.dark-mode .risk-badge.risk-pending {
+    background-color: #232a36 !important;
+    color: #b0b0b0 !important;
+  }
+  body.dark-mode .empty-state {
+    color: #b0b0b0 !important;
+  }
+  body.dark-mode .alert-banner {
+    background: linear-gradient(135deg, #3a2323 0%, #5a2323 100%) !important;
+    color: #fff !important;
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.10);
+  }
+  body.dark-mode .table thead th {
+    background-color: #232a36 !important;
+    color: #f1f1f1 !important;
+  }
+  body.dark-mode .table tbody td {
+    background-color: #181818 !important;
+    color: #f1f1f1 !important;
+    border-top: 1px solid #232a36 !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="main">
+  <section class="dashboard-container">
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+      <!-- Card-based Header -->
+      <div class="row mb-4" style="gap: 0;">
+        <div class="col-12">
+          <div class="dashboard-header" style="border-radius: 28px; background: linear-gradient(135deg, #1977cc 0%, #0056b3 100%); color: #fff; display: flex; align-items: center; justify-content: flex-start; padding: 2.5rem 2.5rem 2rem 2.5rem; box-shadow: 0 10px 30px rgba(25, 119, 204, 0.15);">
+            <div style="display: flex; align-items: center;">
+              <span class="icon" style="font-size: 2.8rem; margin-right: 1.5rem;"><i class="bi bi-heart-pulse"></i></span>
+              <div>
+                <h1 class="mb-1" style="font-size: 2.2rem; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: -1px;">Patient Risk Panel</h1>
+                <p style="font-size: 1.1rem; opacity: 0.95; margin-bottom: 0;">Monitor and manage your assigned patients' cardiovascular risk assessments</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Stat Cards Row -->
+      <div class="row stats-row mb-4" style="gap: 1.5rem;">
+        <div class="col stats-card" style="border-radius: 18px; padding: 1.5rem 1.2rem; box-shadow: 0 4px 18px rgba(25, 119, 204, 0.07); border-left: 6px solid #1977cc; min-width: 160px;">
+          <div class="stats-number text-primary" style="font-size: 2.2rem; font-weight: 700; margin-bottom: 0.2rem; line-height: 1;">{{ total_patients }}</div>
+          <div class="stats-label" style="color: #6c757d; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Total Patients</div>
+        </div>
+        <div class="col stats-card" style="border-radius: 18px; padding: 1.5rem 1.2rem; box-shadow: 0 4px 18px rgba(25, 119, 204, 0.07); border-left: 6px solid #dc3545; min-width: 160px;">
+          <div class="stats-number text-danger" style="font-size: 2.2rem; font-weight: 700; margin-bottom: 0.2rem; line-height: 1;">{{ high_risk_count }}</div>
+          <div class="stats-label" style="color: #6c757d; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">High Risk</div>
+        </div>
+        <div class="col stats-card" style="border-radius: 18px; padding: 1.5rem 1.2rem; box-shadow: 0 4px 18px rgba(25, 119, 204, 0.07); border-left: 6px solid #ffc107; min-width: 160px;">
+          <div class="stats-number text-warning" style="font-size: 2.2rem; font-weight: 700; margin-bottom: 0.2rem; line-height: 1;">{{ intermediate_risk_count }}</div>
+          <div class="stats-label" style="color: #6c757d; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Intermediate Risk</div>
+        </div>
+        <div class="col stats-card" style="border-radius: 18px; padding: 1.5rem 1.2rem; box-shadow: 0 4px 18px rgba(25, 119, 204, 0.07); border-left: 6px solid #28a745; min-width: 160px;">
+          <div class="stats-number text-success" style="font-size: 2.2rem; font-weight: 700; margin-bottom: 0.2rem; line-height: 1;">{{ low_risk_count }}</div>
+          <div class="stats-label" style="color: #6c757d; font-size: 1rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;">Low Risk</div>
+        </div>
+      </div>
+      <!-- Search Card -->
+      <div class="search-card" style="border-radius: 18px; box-shadow: 0 4px 18px rgba(25, 119, 204, 0.07); padding: 1.2rem 2rem; margin-bottom: 2rem; display: flex; align-items: center; min-height: 72px; justify-content: space-between;">
+        <div class="input-group" style="max-width: 400px; width: 100%;">
+          <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
+          <input type="text" class="form-control search-box border-start-0" placeholder="Search patients by name or email">
+        </div>
+        <div class="bubble-group" style="display: flex; gap: 0.7rem; margin-left: 2rem;">
+          <button class="bubble-btn active" style="width: auto; min-width: 48px; height: 38px; border-radius: 20px; border: 1.5px solid #1977cc; cursor: pointer; padding: 0 1.2rem; font-weight: 500;">All Patients</button>
+          <button class="bubble-btn" style="width: auto; min-width: 48px; height: 38px; border-radius: 20px; border: 1.5px solid #1977cc; cursor: pointer; padding: 0 1.2rem; font-weight: 500;">High Risk</button>
+          <button class="bubble-btn" style="width: auto; min-width: 48px; height: 38px; border-radius: 20px; border: 1.5px solid #1977cc; cursor: pointer; padding: 0 1.2rem; font-weight: 500;">Intermediate</button>
+          <button class="bubble-btn" style="width: auto; min-width: 48px; height: 38px; border-radius: 20px; border: 1.5px solid #1977cc; cursor: pointer; padding: 0 1.2rem; font-weight: 500;">Low Risk</button>
+          <button class="bubble-btn" style="width: auto; min-width: 48px; height: 38px; border-radius: 20px; border: 1.5px solid #1977cc; cursor: pointer; padding: 0 1.2rem; font-weight: 500;">Pending</button>
+        </div>
+      </div>
+      <style>
+      .bubble-group .bubble-btn {
+        background: #fff !important;
+        color: #1977cc !important;
+        border-color: #1977cc !important;
+        transition: background 0.2s, color 0.2s;
+      }
+      .bubble-group .bubble-btn.active,
+      .bubble-group .bubble-btn:active {
+        background: #1977cc !important;
+        color: #fff !important;
+        border-color: #1977cc !important;
+        box-shadow: 0 0 0 2px #1977cc33;
+      }
+      </style>
+      <!-- High Risk Alert Banner -->
+      {% if high_risk_patients %}
+        <div class="alert alert-banner" data-aos="fade-up">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+            <div class="flex-grow-1">
+              <h5 class="mb-1">
+                <strong>High Risk Alert!</strong>
+              </h5>
+              <p class="mb-0">
+                You have {{ high_risk_patients|length }} patient{{ high_risk_patients|length|pluralize }} with high cardiovascular risk requiring immediate attention.
+              </p>
+            </div>
+            <button class="btn btn-light btn-sm" onclick="filterHighRisk()">
+              <i class="bi bi-eye me-1"></i>View Patients
+            </button>
+          </div>
+        </div>
+      {% endif %}
+      <!-- Patient Table Header -->
+      <div class="patient-cards-header d-flex align-items-center px-3 py-2 mb-2" style="border-radius:12px; font-weight:700;">
+        <div style="min-width:180px; flex:2;"><i class="bi bi-person"></i> Patient</div>
+        <div style="min-width:90px; flex:1;"><i class="bi bi-calendar"></i> Age</div>
+        <div style="min-width:110px; flex:1;"><i class="bi bi-heart-pulse"></i> Risk Score</div>
+        <div style="min-width:120px; flex:1;"><i class="bi bi-geo-alt"></i> Risk Level</div>
+        <div style="min-width:160px; flex:1.5;"><i class="bi bi-clock"></i> Last Assessment</div>
+        <div style="min-width:120px; flex:1;"><i class="bi bi-gear"></i> Actions</div>
+      </div>
+      <!-- Patient Cards List -->
+      <div class="patient-cards-list mt-4">
+        {% for patient in patient_data %}
+          <div class="patient-card {% if patient.is_high_risk %}high-risk-alert{% endif %}">
+            <div class="d-flex align-items-center w-100">
+              <span class="avatar-circle">{{ patient.name|slice:':1'|upper }}</span>
+              <div class="ms-3 flex-grow-1">
+                <div class="fw-bold">{{ patient.name }}</div>
+                <div class="text-muted small">{{ patient.email }}</div>
+              </div>
+              <div class="patient-card-info ms-auto">
+                <span class="me-3"><i class="bi bi-calendar"></i> {% if patient.dob %}{{ patient.dob|timesince|slice:':2' }} years{% else %}N/A{% endif %}</span>
+                <span class="me-3"><i class="bi bi-heart-pulse"></i> {% if patient.risk_score %}{{ patient.risk_score }}{% else %}N/A{% endif %}</span>
+                <span class="me-3">
+                  {% if patient.recommendation == 'High Risk' %}
+                    <span class="risk-badge risk-high">High</span>
+                  {% elif patient.recommendation == 'Intermediate Risk' %}
+                    <span class="risk-badge risk-intermediate">Intermediate</span>
+                  {% elif patient.recommendation == 'Low Risk' %}
+                    <span class="risk-badge risk-low">Low</span>
+                  {% else %}
+                    <span class="risk-badge risk-pending">Pending</span>
+                  {% endif %}
+                </span>
+                <span class="me-3"><i class="bi bi-clock"></i> {% if patient.assessed_at %}{{ patient.assessed_at|date:'M d, Y H:i' }}{% else %}No assessment{% endif %}</span>
+              </div>
+              <div>
+                <a href="{% url 'view_patient' patient.patient_id %}" class="action-btn btn-view"><i class="bi bi-eye"></i> View</a>
+                <a href="{% url 'contact_patient' patient.patient_id %}" class="action-btn btn-contact"><i class="bi bi-envelope"></i> Contact</a>
+              </div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="text-center text-muted">No patients found.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('patientSearch');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const tableBody = document.getElementById('patientTableBody');
+    const rows = tableBody ? tableBody.querySelectorAll('.patient-row') : [];
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        filterTable(searchTerm, getActiveFilter());
+      });
+    }
+    filterButtons.forEach(button => {
+      button.addEventListener('click', function() {
+        filterButtons.forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        const filterValue = this.getAttribute('data-filter');
+        const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+        filterTable(searchTerm, filterValue);
+      });
+    });
+    function getActiveFilter() {
+      const activeButton = document.querySelector('.filter-btn.active');
+      return activeButton ? activeButton.getAttribute('data-filter') : 'all';
+    }
+    function filterTable(searchTerm, filterValue) {
+      rows.forEach(row => {
+        const patientName = row.getAttribute('data-patient-name') || '';
+        const patientEmail = row.getAttribute('data-patient-email') || '';
+        const riskLevel = row.getAttribute('data-risk-level') || '';
+        const matchesSearch = searchTerm === '' || patientName.includes(searchTerm) || patientEmail.includes(searchTerm);
+        const matchesFilter = filterValue === 'all' || riskLevel === filterValue;
+        if (matchesSearch && matchesFilter) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+    window.filterHighRisk = function() {
+      filterButtons.forEach(btn => btn.classList.remove('active'));
+      document.querySelector('[data-filter="high"]').classList.add('active');
+      filterTable('', 'high');
+    };
+    // setInterval(function() { location.reload(); }, 300000); // Optional auto-refresh
+    // Bubble button toggle logic
+    const bubbleBtns = document.querySelectorAll('.bubble-btn');
+    bubbleBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        bubbleBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        console.log('Bubble button clicked:', this.textContent);
+      });
+    });
+  });
+</script>
+{% endblock %} 

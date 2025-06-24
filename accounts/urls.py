@@ -40,6 +40,14 @@ name='password_reset_complete'),
     path('patient/history/', views.assessment_history, name='assessment_history'),
     path('patient/learn/', views.patient_learn, name='patient_learn'),
 
+    path('admin-panel/', views.admin_panel, name='admin_panel'),
+
+    path('batch-prediction/', views.batch_prediction, name='batch_prediction'),
+
+    path('download-data-entry-template/', views.download_data_entry_template, name='download_data_entry_template'),
+    path('download-feature-documentation/', views.download_feature_documentation, name='download_feature_documentation'),
+
+    path('patient-risk-panel/', views.patient_risk_panel, name='patient_risk_panel'),
 
 ]
 

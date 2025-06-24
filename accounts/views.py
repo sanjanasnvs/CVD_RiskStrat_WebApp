@@ -10,12 +10,14 @@ from django.shortcuts import get_object_or_404
 import joblib
 import pandas as pd
 import numpy as np
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse, Http404
 from django.db import DatabaseError
 from django.db import transaction, connection
 from django.views.decorators.http import require_http_methods
 from utils import calculate_features_from_responses, should_display_question
 from datetime import datetime
+import os
+from django.conf import settings
 
 
 thresholds = pd.read_csv("model_files/FinalSolFront1 (1).csv").iloc[0]
@@ -59,7 +61,7 @@ def admin_login_view(request):
 
 # Checks if the user is logged in and is an admin, and if so, shows them a list of all users, questionnaires and responses
 def is_admin(user):
-    return user.is_authenticated and user.role == 'admin'
+    return user.is_authenticated and (user.is_superuser or user.is_staff)
 
 @login_required
 @user_passes_test(is_admin)
@@ -478,7 +480,96 @@ def signup_view(request):
 
 # Create your views here.
 def home_view(request):
-    return render(request, 'medilab/starter-page.html')
+    return render(request, 'home.html')
 
 def request_access_view(request):
     return render(request, 'users/request-access.html')
+
+def about_view(request):
+    return render(request, 'about.html')
+
+def contact_view(request):
+    if request.method == 'POST':
+        # You can add email sending or form processing logic here
+        # For now, just render the same page with a success message
+        return render(request, 'contact.html', {'success': True})
+    return render(request, 'contact.html')
+
+@login_required
+@user_passes_test(is_admin)
+def admin_panel(request):
+    # TODO: Replace with your actual queries
+    all_access_requests = []  # Query for pending access requests
+    all_users = []            # Query for all users
+    return render(request, 'admin/admin_panel.html', {
+        'all_access_requests': all_access_requests,
+        'all_users': all_users,
+    })
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.is_staff or u.role == 'clinician_approved')
+def batch_prediction(request):
+    return render(request, 'admin/batch_prediction.html', {})
+
+def download_data_entry_template(request):
+    file_path = os.path.join(settings.BASE_DIR, 'static', 'downloads', 'data_entry_template.csv')
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename='data_entry_template.csv')
+    else:
+        raise Http404("Template not found.")
+
+def download_feature_documentation(request):
+    file_path = os.path.join(settings.BASE_DIR, 'static', 'downloads', 'feature_documentation.csv')
+    if os.path.exists(file_path):
+        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename='feature_documentation.csv')
+    else:
+        raise Http404("Documentation not found.")
+
+@login_required
+def patient_risk_panel(request):
+    # Allow clinicians and admin users
+    if not (request.user.role == 'clinician_approved' or request.user.is_superuser or request.user.is_staff):
+        return redirect('home')
+
+    assignments = []
+    if request.user.role == 'clinician_approved':
+        try:
+            clinician = Clinicians.objects.get(user=request.user)
+            assignments = CVD_risk_Clinician_Patient.objects.filter(clinician=clinician).select_related('patient')
+        except Clinicians.DoesNotExist:
+            assignments = []  # No patients assigned if no Clinicians object
+    else:
+        # For admin, show all patients
+        assignments = CVD_risk_Clinician_Patient.objects.all().select_related('patient')
+
+    patient_data = []
+    high_risk_patients = []
+    for assign in assignments:
+        patient = assign.patient
+        latest_risk = Risk_Stratification.objects.filter(patient=patient).order_by('-assessed_at').first()
+        is_high_risk = latest_risk and latest_risk.recommendation == 'High Risk'
+        patient_info = {
+            'patient_id': patient.patient_id,
+            'name': f"{patient.user.first_name} {patient.user.last_name}",
+            'dob': patient.date_of_birth,
+            'email': patient.user.email,
+            'risk_score': latest_risk.risk_score if latest_risk else None,
+            'recommendation': latest_risk.recommendation if latest_risk else None,
+            'assessed_at': latest_risk.assessed_at if latest_risk else None,
+            'is_high_risk': is_high_risk,
+        }
+        patient_data.append(patient_info)
+        if is_high_risk:
+            high_risk_patients.append(patient_info)
+    total_patients = len(patient_data)
+    high_risk_count = len([p for p in patient_data if p.get('recommendation') == 'High Risk'])
+    intermediate_risk_count = len([p for p in patient_data if p.get('recommendation') == 'Intermediate Risk'])
+    low_risk_count = len([p for p in patient_data if p.get('recommendation') == 'Low Risk'])
+    return render(request, 'clinicians/patient_risk_panel.html', {
+        'patient_data': patient_data,
+        'high_risk_patients': high_risk_patients,
+        'total_patients': total_patients,
+        'high_risk_count': high_risk_count,
+        'intermediate_risk_count': intermediate_risk_count,
+        'low_risk_count': low_risk_count,
+    })
