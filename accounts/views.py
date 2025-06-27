@@ -912,7 +912,8 @@ def approve_request(request, request_id):
     Clinicians.objects.create(user=user, specialty=access_request.affiliation)
     access_request.status = 'approved'
     access_request.save()
-   return redirect('admin_panel')
+
+    return redirect('admin_panel')
 
 
 

@@ -6,11 +6,12 @@ from accounts.views import assessment_view
 
 urlpatterns = [
     path('starter/', views.home_view, name='starter-page'),
+    path('learn-cvd/', views.learn_cvd, name='learn_cvd'),
     path('request-access/', views.request_access_view, name='request_access'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('patient/dashboard/', views.patient_dashboard, name='patient_dashboard'),
-    path('clinician/dashboard/', views.clinician_dashboard, name='clinician_dashboard'),
+    path('clinician/dashboard/', views.patient_risk_panel, name='patient_risk_panel'),
     path('signup/', views.signup_view, name='signup'),
     path('dashboard/', views.role_based_dashboard_redirect, name='dashboard_redirect'),
 
@@ -38,7 +39,7 @@ name='password_reset_complete'),
     path('patient/<int:patient_id>/results/', views.clinician_patient_results, name='clinician_patient_results'),
     path('patient/results/', views.patient_self_results, name='patient_self_results'),
     path('patient/history/', views.assessment_history, name='assessment_history'),
-    path('patient/learn/', views.patient_learn, name='patient_learn'),
+    path('patient/history/<uuid:submission_id>/', views.view_results_by_submission, name='view_results_by_submission'),
 
     path('admin-panel/', views.admin_panel, name='admin_panel'),
 
