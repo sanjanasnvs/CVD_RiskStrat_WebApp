@@ -472,8 +472,17 @@ def signup_view(request):
             print(" User created:", user)
             print(" Role:", user.role)
 
-            # Optional: Create patient profile if required
-            Patients.objects.create(user=user)
+            # Get the selected clinician from the form
+            clinician_id = request.POST.get('clinician')
+            clinician = None
+            if clinician_id:
+                try:
+                    clinician = Clinicians.objects.get(pk=clinician_id)
+                except Clinicians.DoesNotExist:
+                    clinician = None
+
+            # Create patient profile and link to clinician
+            Patients.objects.create(user=user, clinician=clinician)
 
             login(request, user)
             return redirect('patient_dashboard')
