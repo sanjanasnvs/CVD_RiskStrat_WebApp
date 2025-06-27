@@ -60,7 +60,7 @@ class Patients(models.Model):
     patient_id = models.AutoField(primary_key=True)
     user = models.OneToOneField(Users, on_delete=models.CASCADE)
     date_of_birth = models.DateField(null=True, blank=True)
-    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], null = True, blank = True)
+    sex = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], null = True, blank = True)
     created_at = models.DateTimeField(auto_now_add=True)
     clinician = models.ForeignKey('Clinicians', on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -115,8 +115,7 @@ class CVD_risk_QuestionResponseOptions(models.Model):
     id = models.AutoField(primary_key=True)
     question = models.ForeignKey(CVD_risk_Questionnaire, on_delete=models.CASCADE)
     option_text = models.TextField()
-    value_range_start = models.FloatField(null=True, blank=True)
-    value_range_end = models.FloatField(null=True, blank=True)
+    encoded_value = models.FloatField(null=True, blank=True)
     option_label = models.CharField(max_length=100, null=True, blank=True)
 
     class Meta:
@@ -134,10 +133,36 @@ class CVD_risk_Responses(models.Model):
     option_selected = models.ForeignKey(CVD_risk_QuestionResponseOptions, on_delete=models.SET_NULL, null=True, blank=True)
     multi_selected_options = models.ManyToManyField(CVD_risk_QuestionResponseOptions, related_name="multi_responses", blank=True)
     response_date = models.DateTimeField(auto_now_add=True)
+    last_updated = models.DateTimeField(auto_now=True)
+    submission_id = models.CharField(max_length=100, null=True, blank=True)
+
+    @property
+    def encoded_single_option(self):
+        """Returns encoded value of selected option if applicable."""
+        return self.option_selected.encoded_value if self.option_selected else None
+    @property
+    def encoded_multi_options(self):
+        """Returns list of encoded values from multi-selected options."""
+        return [opt.encoded_value for opt in self.multi_selected_options.all()]
 
     class Meta:
         db_table = 'CVD_risk_Responses'
         verbose_name_plural = 'CVD Risk Responses'
+    
+
+class FeatureOptionMapping(models.Model):
+    feature_name = models.CharField(max_length=300)
+    question = models.ForeignKey(CVD_risk_Questionnaire, on_delete=models.CASCADE)
+    option = models.ForeignKey(CVD_risk_QuestionResponseOptions, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('feature_name', 'question')
+        db_table = 'Feature_Option_Mappings'
+        verbose_name_plural = "Feature Option Mappings"
+
+    def __str__(self):
+        return f"{self.feature_name} → {self.option.option_text}"
+        
 
 
 class CVD_risk_Clinician_Patient(models.Model):
@@ -148,7 +173,6 @@ class CVD_risk_Clinician_Patient(models.Model):
 
     class Meta:
         db_table = 'CVD_risk_Clinician_Patient'
-        unique_together = (('clinician', 'patient'),)
         verbose_name_plural = 'Clinician Patients'
 
 
@@ -161,6 +185,83 @@ class ML_Models(models.Model):
         db_table = 'ML_Models'
         verbose_name_plural = 'ML Models'
 
+class CVD_Risk_Model_InputFeatures(models.Model):
+    feature_id = models.AutoField(primary_key=True)
+    question = models.ForeignKey(CVD_risk_Questionnaire, on_delete=models.CASCADE)
+    feature_name = models.CharField(max_length=255)  # e.g., 'years_at_address_Upper.third'
+    # Only for categorical features
+    encoded_option = models.ForeignKey(
+        CVD_risk_QuestionResponseOptions,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        help_text="For categorical features: which specific option this feature checks"
+    )
+
+    class Meta:
+        db_table = 'CVD_Risk_Model_InputFeatures'
+        verbose_name_plural = 'CVD Risk Model Input Features'
+        unique_together = ('question', 'feature_name')
+
+
+class CVD_Risk_CalculatedFeatures(models.Model):
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
+    model = models.ForeignKey(ML_Models, on_delete=models.CASCADE)
+    feature = models.ForeignKey(CVD_Risk_Model_InputFeatures, on_delete=models.CASCADE)
+    value = models.FloatField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'CVD_Risk_CalculatedFeatures'
+        verbose_name_plural = 'CVD Risk Calculated Features'
+        unique_together = ('patient', 'model', 'feature')
+
+        
+
+class CVD_ModelFeatureMappings(models.Model):
+    model = models.ForeignKey(ML_Models, on_delete=models.CASCADE)
+    input_feature = models.ForeignKey(CVD_Risk_Model_InputFeatures, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'CVD_ModelFeatureMappings'
+        verbose_name_plural = 'Model Feature Mappings'
+        unique_together = (('model', 'input_feature'),)
+        
+
+class CVD_Risk_FeatureThresholds(models.Model):
+    feature = models.ForeignKey(CVD_Risk_Model_InputFeatures, on_delete=models.CASCADE)
+    threshold_value = models.FloatField()
+
+    class Meta:
+        db_table = 'CVD_Risk_FeatureThresholds'
+        verbose_name_plural = 'CVD Risk Feature Thresholds'
+        unique_together = (('feature',),)
+
+
+
+class Risk_Stratification(models.Model):
+    stratification_id = models.AutoField(primary_key=True)
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
+    risk_score = models.DecimalField(max_digits=5, decimal_places=2)
+    recommendation = models.TextField()
+    assessed_at = models.DateTimeField(auto_now_add=True)
+    model = models.ForeignKey(ML_Models, on_delete=models.SET_NULL, null=True)
+    submission_id = models.CharField(max_length=100, null=True, blank=True)  # NEW
+    alert_sent = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'Risk_Stratification'
+        verbose_name_plural = 'Risk Stratification'
+
+
+class CVD_risk_Patient_Outcomes(models.Model):
+    outcome_id = models.AutoField(primary_key=True)
+    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
+    outcome_description = models.TextField()
+    reported_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'CVD_risk_Patient_Outcomes'
+        verbose_name_plural = 'CVD Risk Patient Outcomes'
 
 class batch_CVD_Risk_Features(models.Model):
     feature_id = models.AutoField(primary_key=True)
@@ -180,31 +281,6 @@ class batch_CVD_Risk_Model_Features(models.Model):
         db_table = 'batch_CVD_Risk_Model_Features'
         unique_together = (('model', 'feature'),)
         verbose_name_plural = 'Batch CVD Risk Model Features'
-
-
-class Risk_Stratification(models.Model):
-    stratification_id = models.AutoField(primary_key=True)
-    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
-    risk_score = models.DecimalField(max_digits=5, decimal_places=2)
-    recommendation = models.TextField()
-    assessed_at = models.DateTimeField(auto_now_add=True)
-    model = models.ForeignKey(ML_Models, on_delete=models.SET_NULL, null=True)
-    alert_sent = models.BooleanField(default=False)
-
-    class Meta:
-        db_table = 'Risk_Stratification'
-        verbose_name_plural = 'Risk Stratification'
-
-
-class CVD_risk_Patient_Outcomes(models.Model):
-    outcome_id = models.AutoField(primary_key=True)
-    patient = models.ForeignKey(Patients, on_delete=models.CASCADE)
-    outcome_description = models.TextField()
-    reported_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'CVD_risk_Patient_Outcomes'
-        verbose_name_plural = 'CVD Risk Patient Outcomes'
 
 
 class batch_CVD_Risk_Risk(models.Model):
