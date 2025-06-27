@@ -318,4 +318,7 @@ class ClinicianAccessRequest(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.email}) - {self.status}";
+    class Meta:
+        db_table = 'Clinician_Access_Request'
+        verbose_name_plural = 'Clinician Access Requests'
 
