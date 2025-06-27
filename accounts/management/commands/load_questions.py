@@ -5,93 +5,92 @@ from django.conf import settings
 from accounts.models import CVD_risk_Questionnaire
 
 class Command(BaseCommand):
-    help = 'Load questionnaire questions into the database, filtering Sociodemographics based on a sample dataset.'
+    help = 'Load questionnaire questions based on features used in the model input sample file.'
 
     def handle(self, *args, **kwargs):
-        # Define file paths
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        data_dir = os.path.join(settings.BASE_DIR, 'Questionnaire_data')
-        questions_file = os.path.join(data_dir, 'TS_mapping_with_questions_v1.xlsx')
-        dependencies_file = os.path.join(data_dir, 'TS_advanced_mapping_v2 (1).xlsx')
-        sample_file = os.path.join(settings.BASE_DIR, 'model_files', 'sociodemographicsSample (1).csv')
+        # ---------------------------------------
+        # 📁 Define file paths
+        # ---------------------------------------
+        questions_file = os.path.join(settings.BASE_DIR, 'Questionnaire_data', 'TS_mapping_with_questions_v1.xlsx')
+        dependencies_file = os.path.join(settings.BASE_DIR, 'Questionnaire_data', 'TS_advanced_mapping_v2 (1).xlsx')
+        sample_file = os.path.join(settings.BASE_DIR, 'model_files', 'Input features sample files', 'biggestModelnoDropSample.csv')
 
-        print("📄 Loading full questionnaire Excel file...")
-        questions_df = pd.read_excel(questions_file)
+        # ---------------------------------------
+        # 📥 Step 1: Load feature list from model input CSV
+        # ---------------------------------------
+        try:
+            sample_df = pd.read_csv(sample_file, header=None, skiprows=1)
+            feature_names = sample_df[0].dropna().astype(str).str.strip()
+        except Exception as e:
+            self.stderr.write(f"❌ Could not read sample CSV: {e}")
+            return
+
+        # ✅ Only remove the prefix "category_{...}_ts_"
+        def remove_prefix(name):
+            if name.startswith("category_") and "_ts_" in name:
+                return name.split("_ts_", 1)[1].strip()
+            return name.strip()
+
+        cleaned_features = [remove_prefix(name) for name in feature_names]
+
+        # ---------------------------------------
+        # 📥 Step 2: Load questions and categories from Excel
+        # ---------------------------------------
+        try:
+            questions_df = pd.read_excel(questions_file)
+            category_df = pd.read_excel(dependencies_file)
+        except Exception as e:
+            self.stderr.write(f"❌ Could not read Excel files: {e}")
+            return
+
+        # Clean column names
         questions_df.columns = questions_df.columns.str.strip()
-
-        print("📄 Loading category mapping file...")
-        category_df = pd.read_excel(dependencies_file)
         category_df.columns = category_df.columns.str.strip()
 
-        print("📄 Loading sample dataset for Sociodemographics...")
-        sample_df = pd.read_csv(sample_file, header=None)
-        sample_columns = sample_df[0].dropna().str.strip()
+        # Drop rows with missing mappings
+        filtered_questions_df = questions_df.dropna(subset=['Column names', 'Field ID']).copy()
+        filtered_questions_df['Column names'] = filtered_questions_df['Column names'].astype(str).str.strip()
+        filtered_questions_df['Field ID'] = filtered_questions_df['Field ID'].astype(int)
 
-        # Handle feature names with and without prefix
-        prefix = 'category_Sociodemographics_ts_'
-        sociodemographic_features = []
+        # 🔗 Build mapping from column name to Field ID
+        column_to_field = dict(zip(
+            filtered_questions_df['Column names'],
+            filtered_questions_df['Field ID']
+        ))
 
-        for feature in sample_columns:
-            if feature.startswith(prefix):
-                cleaned_feature = feature.replace(prefix, '', 1)
-                sociodemographic_features.append(cleaned_feature)
-            else:
-                # Directly add feature without prefix
-                sociodemographic_features.append(feature)
+        # Match cleaned features to Field IDs
+        feature_field_ids = {column_to_field.get(f) for f in cleaned_features if f in column_to_field}
+        feature_field_ids = {fid for fid in feature_field_ids if fid is not None}
 
-        # Map feature names to Field IDs
-        column_to_field = dict(zip(questions_df['Column names'], questions_df['Field ID']))
-        sociodemographic_field_ids = set()
-        for feature in sociodemographic_features:
-            field_id = column_to_field.get(feature)
-            if pd.notna(field_id):
-                sociodemographic_field_ids.add(int(field_id))
-
-        print("🔁 Merging category & subcategory info into main question file...")
+        # ---------------------------------------
+        # 🔄 Merge category info
+        # ---------------------------------------
         merged_df = pd.merge(
-            questions_df,
+            filtered_questions_df,
             category_df[['Field.ID', 'Category', 'Sub.category']],
             how='left',
             left_on='Field ID',
             right_on='Field.ID'
         )
 
-        print("🔍 Filtering relevant questions...")
-        seen_ids = set()
-        valid_rows = []
+        # Keep only rows that match features from the CSV
+        valid_rows = merged_df[merged_df['Field ID'].isin(feature_field_ids)].drop_duplicates(subset=['Field ID'])
 
-        for _, row in merged_df.iterrows():
-            field_id = row.get('Field ID')
-            category = row.get('Category')
-            if pd.isna(field_id) or pd.isna(category):
-                continue
+        print(f"✅ Prepared {len(valid_rows)} rows for insertion.\n")
 
-            if field_id in seen_ids:
-                continue
-
-            if category == 'Sociodemographics':
-                if int(field_id) in sociodemographic_field_ids:
-                    valid_rows.append(row)
-                    seen_ids.add(field_id)
-            else:
-                valid_rows.append(row)
-                seen_ids.add(field_id)
-
-        print(f"✅ Loaded {len(valid_rows)} valid questions after filtering.\n")
-
-        # Clear existing DB entries
-        print("🧹 Clearing existing questionnaire entries...")
+        # ---------------------------------------
+        # 💾 Load to DB
+        # ---------------------------------------
         CVD_risk_Questionnaire.objects.all().delete()
+        inserted = 0
 
-        print("💾 Inserting questions into database...\n")
-        imported = 0
-        for order, row in enumerate(valid_rows, start=1):
+        for order, (_, row) in enumerate(valid_rows.iterrows(), start=1):
             try:
-                question_id = int(row.get('Field ID'))
-                question_text = row.get('Question Stem', '').strip()
-                category = row.get('Category', '').strip()
-                subcategory = row.get('Sub.category', '').strip() if pd.notna(row.get('Sub.category')) else None
-                answer_type = row.get('Select one/Toggle multiple/Enter integer answer', '').strip()
+                question_id = int(row['Field ID'])
+                question_text = str(row.get('Question Stem', '')).strip()
+                category = str(row.get('Category', '')).strip()
+                subcategory = str(row['Sub.category']).strip() if pd.notna(row.get('Sub.category')) else None
+                answer_type = str(row.get('Select one/Toggle multiple/Enter integer answer', '')).strip()
 
                 if not all([question_id, question_text, category, answer_type]):
                     continue
@@ -104,8 +103,10 @@ class Command(BaseCommand):
                     answer_type=answer_type,
                     question_order=order
                 )
-                imported += 1
-            except Exception as e:
-                print(f"⚠️ Skipped row due to error: {e}")
+                print(f"✅ Inserted Q{question_id}: {question_text}")
+                inserted += 1
 
-        print(f"✅ Successfully inserted {imported} questions.\n")
+            except Exception as e:
+                print(f"❌ Skipped row due to error: {e}")
+
+        print(f"\n🎯 Finished: {inserted} questions inserted into the database.\n")

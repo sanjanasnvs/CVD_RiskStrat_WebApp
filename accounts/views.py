@@ -14,8 +14,13 @@ from django.http import JsonResponse
 from django.db import DatabaseError
 from django.db import transaction, connection
 from django.views.decorators.http import require_http_methods
-from utils import calculate_features_from_responses, should_display_question
+from .utils import should_display_question
 from datetime import datetime
+import os
+from .explainers import generate_explainability_plot
+from django.conf import settings
+from django.db.models import Max
+
 
 
 thresholds = pd.read_csv("model_files/FinalSolFront1 (1).csv").iloc[0]
@@ -25,6 +30,49 @@ CATEGORY_THRESHOLDS = {
     "Sex-specific factors": (thresholds["Min_Threshold3"], thresholds["Max_Threshold3"]),
     # add others as needed
 }
+CATEGORY_ORDER = ["Sociodemographics", "Health and medical history", "Sex-specific factors",
+                  "Early life factors", "Family history", "Lifestyle and environment",
+                  "Psychosocial factors"]
+
+def get_risk_category(score, category):
+    """
+    Determines patient's risk category based on the score and thresholds.
+    """
+    try:
+        idx = CATEGORY_ORDER.index(category) + 1  # because threshold columns are 1-indexed
+        min_t = thresholds[f"Min_Threshold{idx}"]
+        max_t = thresholds[f"Max_Threshold{idx}"]
+
+        if score < min_t:
+            return "Low Risk"
+        elif score > max_t:
+            return "High Risk"
+        else:
+            return "Inconclusive"
+    except Exception as e:
+        print(f"❌ Failed to classify risk: {e}")
+        return "Unknown"
+
+MODEL_FILE_MAPPING = {
+    "Sociodemographics": "model_files/ML_models/MRMR_COX_Sociodemographics.pkl",
+    "Health and medical history": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history.pkl",
+    "Sex-specific factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors.pkl",
+    "Early life factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors.pkl",
+    "Family history": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history.pkl",
+    "Lifestyle and environment": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment.pkl",
+    "Psychosocial factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors.pkl",
+}
+
+MODEL_DB_NAME_MAPPING = {
+    'model1_sociodemographic': 'MRMR_COX_Sociodemographics.pkl',
+    'model2_healthandmed': 'MRMR_COX_Sociodemographics_Health_and_medical_history.pkl',
+    'model3_SSF': 'MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors',
+    'model4_early_life': 'MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors.pkl',
+    'model5_family_history': 'MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history.pkl',
+    'model6_lifestyle': 'MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment.pkl',
+    'model7_biggestmodel': 'MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors.pkl'
+}
+
 
 
 def login_view(request):
@@ -102,26 +150,102 @@ from django.shortcuts import render, redirect
 from accounts.models import CVD_risk_Questionnaire, CVD_risk_QuestionResponseOptions, CVD_risk_Responses
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
+from uuid import uuid4
+from feature_calculators import (
+    model1_sociodemographic,
+    model2_healthandmed,
+    model3_SSF,
+    model4_early_life,
+    model5_family_history,
+    model6_lifestyle,
+    model7_biggestmodel
+)
+
+import joblib
+from datetime import datetime
+
+
+
+from django.shortcuts import render, redirect
+from django.urls import reverse
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.db import connection, DatabaseError
+from uuid import uuid4
+from datetime import datetime
+import os
+import joblib
+
+from .models import (
+    CVD_risk_Questionnaire,
+    CVD_risk_QuestionResponseOptions,
+    CVD_risk_Responses,
+    Patients,
+    ML_Models,
+    Risk_Stratification
+)
+from .utils import should_display_question
+from Questionnaire_data.utils import get_visible_questions_for_patient_in_category
+
+# 🧠 Optional helper for message text
+def get_final_message_text(risk_category):
+    if risk_category == "Low Risk":
+        return "✅ You are at low 10-year risk of CVD. Please maintain a healthy lifestyle."
+    elif risk_category == "High Risk":
+        return "⚠️ You are at high 10-year risk of CVD. Please contact your GP or clinician for further testing."
+    else:
+        return "❓ Risk inconclusive. Continue to next section."
+
+
 
 @require_http_methods(["GET", "POST"])
 @login_required
 def assessment_view(request):
+    from django.db import connection
+    from django.db.models import Max
+
     category = request.GET.get('category')
     error_message = None
 
+    # Ordered form category flow
     CATEGORY_ORDER = [
-        "Sociodemographics", "Health and medical history", "Sex-specific factors",
-        "Early life factors", "Family history", "Lifestyle and environment", "Psychosocial factors"
+        "Sociodemographics",
+        "Health and medical history",
+        "Sex-specific factors",
+        "Early life factors",
+        "Family history",
+        "Lifestyle and environment",
+        "Psychosocial factors"
     ]
 
-    # All categories available in the database (fixed order)
+    # Category to function and model mapping
+    CATEGORY_MODEL_MAPPING = {
+        "Sociodemographics": model1_sociodemographic,
+        "Health and medical history": model2_healthandmed,
+        "Sex-specific factors": model3_SSF,
+        "Early life factors": model4_early_life,
+        "Family history": model5_family_history,
+        "Lifestyle and environment": model6_lifestyle,
+        "Psychosocial factors": model7_biggestmodel
+    }
+
+    MODEL_FILE_MAPPING = {
+        "Sociodemographics": "model_files/ML_models/MRMR_COX_Sociodemographics.pkl",
+        "Health and medical history": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history.pkl",
+        "Sex-specific factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors.pkl",
+        "Early life factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors.pkl",
+        "Family history": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history.pkl",
+        "Lifestyle and environment": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment.pkl",
+        "Psychosocial factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors.pkl",
+    }
+
     raw_categories = CVD_risk_Questionnaire.objects.values_list('category', flat=True).distinct()
     all_categories = sorted(set(raw_categories), key=lambda x: CATEGORY_ORDER.index(x) if x in CATEGORY_ORDER else 999)
 
+    # Redirect to first unanswered category
     if not category and all_categories:
         return redirect(f"{reverse('start_assessment')}?category={all_categories[0]}")
 
-    # Navigation helpers
     try:
         current_index = all_categories.index(category)
         previous_category = all_categories[current_index - 1] if current_index > 0 else None
@@ -131,205 +255,167 @@ def assessment_view(request):
         next_category = None
 
     patient = Patients.objects.get(user=request.user)
-    all_questions = CVD_risk_Questionnaire.objects.filter(category=category).order_by('question_order')
 
+    all_questions = CVD_risk_Questionnaire.objects.filter(category=category).order_by('question_order')
+    visible_questions = get_visible_questions_for_patient_in_category(patient, category)
+
+    # Load latest saved responses to prefill
     saved_responses = {
-        r.question.question_id: (r.option_selected_id or r.numeric_response or r.boolean_response)
+        r.question.question_id: (
+            r.option_selected.encoded_value if r.option_selected else
+            r.numeric_response if r.numeric_response is not None else
+            r.boolean_response
+        )
         for r in CVD_risk_Responses.objects.filter(patient=patient)
     }
 
-    visible_questions = [q for q in all_questions if should_display_question(q, saved_responses)]
-
-    # ----- Handle POST Submission -----
+    # ---------- Handle POST (Form Submission) ----------
     if request.method == 'POST':
-        all_valid = True
         try:
-            if connection.connection and not connection.is_usable():
-                connection.close()
+            # Assign a new submission session if not yet set
+            if 'submission_id' not in request.session:
+                request.session['submission_id'] = str(uuid4())
+            submission_id = request.session['submission_id']
 
             for q in visible_questions:
                 key = f"question_{q.question_id}"
-                response_data = {}
                 options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
 
+                # Multi-select handling
                 if q.answer_type == "Toggle multiple answer":
                     values = request.POST.getlist(f"{key}_option")
                     if not values:
-                        all_valid = False
-                        break
-                    selected_options = CVD_risk_QuestionResponseOptions.objects.filter(id__in=values)
+                        continue
+                    selected_options = options.filter(id__in=values)
                     if not selected_options.exists():
-                        all_valid = False
-                        break
-                    response_obj, _ = CVD_risk_Responses.objects.get_or_create(
-                        patient=patient, question=q,
-                        defaults={'response_type': q.answer_type}
+                        continue
+                    response_obj = CVD_risk_Responses.objects.create(
+                        patient=patient, question=q, response_type=q.answer_type, submission_id=submission_id
                     )
                     response_obj.multi_selected_options.set(selected_options)
-                    response_obj.response_type = q.answer_type
                     response_obj.save()
                     continue
 
+                # Single/miscellaneous responses
                 value = request.POST.get(key)
-                if value is None or str(value).strip().lower() in ['select one answer', 'choose', ''] or str(value).strip() == "":
-                    all_valid = False
-                    break
+                if not value or value.lower() in ['select one answer', 'choose', '']:
+                    continue
+
+                response_obj = CVD_risk_Responses.objects.create(
+                    patient=patient, question=q, response_type=q.answer_type, submission_id=submission_id
+                )
 
                 if options.exists():
                     try:
                         selected_option = options.get(id=int(value))
-                        opt_text = selected_option.option_text.strip().lower()
-                        if not opt_text or opt_text in ['select one answer', 'choose', '']:
-                            raise ValueError("Invalid placeholder value selected.")
-                        response_data['option_selected'] = selected_option
-                        response_data['option_selected_id'] = selected_option.id
-                    except (CVD_risk_QuestionResponseOptions.DoesNotExist, ValueError):
-                        all_valid = False
-                        break
+                        response_obj.option_selected = selected_option
+                    except:
+                        continue
                 else:
                     try:
-                        response_data['numeric_response'] = float(value)
-                    except ValueError:
-                        response_data['boolean_response'] = value.lower() in ['yes', 'true', '1']
-
-                if not response_data:  # guard against saving blank responses
-                    all_valid = False
-                    break
-
-                response_obj, _ = CVD_risk_Responses.objects.get_or_create(patient=patient, question=q)
-                for k, v in response_data.items():
-                    setattr(response_obj, k, v)
+                        response_obj.numeric_response = float(value)
+                    except:
+                        response_obj.boolean_response = value.lower() in ['yes', 'true', '1']
                 response_obj.save()
 
         except DatabaseError:
-            all_valid = False
             connection.rollback()
-            messages.error(request, "Database error occurred. Please try again.")
-        except Exception:
-            all_valid = False
-            messages.error(request, "Unexpected error occurred. Please try again.")
+            messages.error(request, "Database error occurred.")
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            messages.error(request, "Unexpected error occurred.")
 
-        if all_valid:
+        # Proceed only if at least one response was saved
+        if CVD_risk_Responses.objects.filter(patient=patient, question__category=category, submission_id=submission_id).exists():
             completed = request.session.get('completed_categories', [])
             if category not in completed:
                 completed.append(category)
                 request.session['completed_categories'] = completed
 
-            if category in CATEGORY_THRESHOLDS:
-                # Prepare input
-                responses = CVD_risk_Responses.objects.filter(patient=patient, question__category=category)
-                response_dict = {}
-                for r in responses:
-                   q_text = r.question.question_text.strip().lower()  # Normalize question key
-                   val = None
-
-                   if r.numeric_response is not None:
-                       val = r.numeric_response
-                   elif r.boolean_response is not None:
-                       val = 1 if r.boolean_response else 0
-                   elif r.option_selected is not None:
-                       opt = r.option_selected
-                       opt_text = opt.option_text.strip().lower()
-                       if opt_text not in ['select one answer', 'choose', '']:
-                           val = opt.value_range_start
-
-
-                   if val not in [None, '', 'select one answer', 'choose']:
-                        response_dict[q_text] = val
-
-                features = calculate_features_from_responses(response_dict)
-                    
-
-                # Load model + preprocessing
-                print("🔍 Loading model files and preprocessing tools...")
-                sample_df = pd.read_csv("model_files/correct_sociodemographics_sample.csv")
-                if 'Unnamed: 0' in sample_df.columns:
-                    sample_df = sample_df.drop(columns=['Unnamed: 0'])
-                model = joblib.load("model_files/MRMR_COX_Sociodemographics.pkl")
-                scaler = joblib.load("model_files/scaler.pkl")
-                imputer = joblib.load("model_files/sociodemographics_rf (1).pkl")
-                print("✅ Model and tools loaded successfully.")
-
-                input_cols = imputer.feature_names_in_.tolist()
-                features = calculate_features_from_responses(response_dict)
-                aligned = {col: features.get(col, 0) for col in input_cols}
-                print("🧮 Aligned model inputs:")
-                for k, v in aligned.items():
-                    print(f"  {k}: {v}")
- 
-                df = pd.DataFrame([aligned])
-                print("🔎 Raw model inputs before imputation:")
-                print(df.loc[:, (df != 0).any(axis=0)])
-                X = scaler.transform(imputer.transform(df))
-                print("✅ Finished imputation and scaling.")
-                risk_score = float(model.predict(X)[0])
-                print(f"📈 Calculated risk score for category '{category}': {risk_score:.4f}")
-
-                # Fetch model object from ML_Models table
+            # ---------- Model Evaluation ----------
+            if category in CATEGORY_MODEL_MAPPING:
+                model_module = CATEGORY_MODEL_MAPPING[category]
                 try:
-                    model_obj = ML_Models.objects.get(model_name="MRMR_COX_Sociodemographics")
-                except ML_Models.DoesNotExist:
-                    print("❌ Model not found in ML_Models table. Please run load_ml_models first.")
-                    raise
+                    df_scaled = model_module.calculate_features(patient.patient_id, submission_id)
+                    
+                    model_path = MODEL_FILE_MAPPING[category]
+                    print(f"🧠 Looking for model: {model_path}")
 
-                # Define thresholds and recommendations
-                low_th, high_th = CATEGORY_THRESHOLDS[category]
-                print(f"🔻 Thresholds -> Low: {low_th}, High: {high_th}")
+                    if not os.path.exists(model_path):
+                        raise FileNotFoundError(f"Model file not found for category: {category}")
 
-                recommendation = (
-                    "Low Risk" if risk_score < low_th else
-                    "High Risk" if risk_score > high_th else
-                    "Intermediate Risk"
-                )
+                    model = joblib.load(model_path)
+                    print("🧾 Final columns before prediction:", df_scaled.columns.tolist())
 
-                # Save to DB
-                Risk_Stratification.objects.create(
-                    patient_id=patient.patient_id,
-                    model_id=model_obj.model_id,  # foreign key referencing ML_Models table
-                    assessed_at=datetime.now(),
-                    risk_score=risk_score,
-                    recommendation=recommendation  # Optional: will set below
-                )
-                print("✅ Risk score saved to DB for patient:", patient.user.username)
+                    # Predict risk 
+                    risk_score = float(model.predict(df_scaled)[0])
+                    print(f"📈 Risk score = {risk_score:.2f}")
 
+                    risk_category = get_risk_category(risk_score, category)
+                    print(f"🧪 Risk classification: {risk_category}")
 
-                if risk_score < low_th:
-                    return render(request, "patients/final_message.html", {
-                        "risk_score": risk_score,
-                        "recommendation": "Low Risk",
-                        "message": "Based on your responses, you are currently at low risk. You can view detailed results in your dashboard."
-                    })
-                elif risk_score > high_th:
-                    return render(request, "patients/final_message.html", {
-                        "risk_score": risk_score,
-                        "recommendation": "High Risk",
-                        "message": "Based on your responses, you are currently at high risk. Please consult your care provider. Full details are available in your dashboard."
-                    })
-                else:
-                    return redirect(f"{reverse('start_assessment')}?category={next_category}")
+                    model_name_cleaned = os.path.basename(model_path).replace(".pkl", "")
+                    model_obj = ML_Models.objects.get(model_name=model_name_cleaned)
+
+                    # Save results with timestamp for grouping later
+                    assessed_time = datetime.now()
+                    Risk_Stratification.objects.create(
+                        patient=patient,
+                        model=model_obj,
+                        assessed_at=assessed_time,
+                        risk_score=risk_score,
+                        recommendation=risk_category,
+                        submission_id=submission_id
+                    )
+
+                    # Generate explainability plot
+                    plot_path = generate_explainability_plot(
+                        observation_row=df_scaled.iloc[0],
+                        full_feature_df=df_scaled,
+                        model_name=model_name_cleaned,  # e.g., 'HealthAndMedicalHistory'
+                        patient_id=patient.patient_id
+                        )
+                    
+                    # Early stopping — render final message if conclusive result reached
+                    if risk_category in ["Low Risk", "High Risk"]:
+                        request.session.pop("submission_id", None)
+                        return render(request, "patients/final_message.html", {
+                            "risk_score": risk_score,
+                            "recommendation": risk_category,
+                            "message": get_final_message_text(risk_category)
+                        })
+
+                except Exception as e:
+                    print(f"❌ Error during model execution for {category}: {e}")
+
+            # Only clear submission_id at end of full or early-stopped run
+            if risk_category in ["Low Risk", "High Risk"] or not next_category:
+                request.session.pop("submission_id", None)
 
             if next_category:
                 return redirect(f"{reverse('start_assessment')}?category={next_category}")
             else:
                 request.session['completed_categories'] = []
                 return redirect('patient_results')
+        else:
+            error_message = "Please answer at least one question before proceeding."
 
-    # ----- GET Display -----
+    # ---------- GET View ----------
     question_data = []
     for q in visible_questions:
         options = list(CVD_risk_QuestionResponseOptions.objects.filter(question=q))
-        saved = CVD_risk_Responses.objects.filter(patient=patient, question=q).first()
+        latest = CVD_risk_Responses.objects.filter(patient=patient, question=q).order_by('-last_updated').first()
 
         response_value = None
         response_id = None
         multi_ids = []
-        if saved:
+        if latest:
             if q.answer_type == "Enter integer answer":
-                response_value = saved.numeric_response
+                response_value = latest.numeric_response
             elif q.answer_type == "Select one answer":
-                response_id = str(saved.option_selected_id) if saved.option_selected_id else None
+                response_id = str(latest.option_selected_id) if latest.option_selected_id else None
             elif q.answer_type == "Toggle multiple answer":
-                multi_ids = saved.multi_selected_options.values_list('id', flat=True)
+                multi_ids = latest.multi_selected_options.values_list('id', flat=True)
 
         question_data.append({
             'question': q,
@@ -353,7 +439,6 @@ def assessment_view(request):
 
 
 
-
 def get_next_category(category_list, current):
     """Helper function to get the next category in the list"""
     try:
@@ -363,48 +448,262 @@ def get_next_category(category_list, current):
         return None
 
 
+MODEL_METRICS = {
+    "MRMR_COX_Sociodemographics": {
+        "accuracy": "16.26%",
+        "auroc": "0.6473",
+        "precision": "16.26%",
+        "recall": "100.00%",
+        "c_index": "0.64"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history": {
+        "accuracy": "86.77%",
+        "auroc": "0.7785",
+        "precision": "91.49%",
+        "recall": "24.94%",
+        "c_index": "0.78"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors": {
+        "accuracy": "86.85%",
+        "auroc": "0.7920",
+        "precision": "96.19%",
+        "recall": "17.93%",
+        "c_index": "0.79"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors": {
+        "accuracy": "86.82%",
+        "auroc": "0.7917",
+        "precision": "96.12%",
+        "recall": "18.51%",
+        "c_index": "0.79"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history": {
+        "accuracy": "86.56%",
+        "auroc": "0.7862",
+        "precision": "87.13%",
+        "recall": "26.86%",
+        "c_index": "0.79"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment": {
+        "accuracy": "86.59%",
+        "auroc": "0.7946",
+        "precision": "97.31%",
+        "recall": "12.39%",
+        "c_index": "0.00"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors": {
+        "accuracy": "86.59%",
+        "auroc": "0.7942",
+        "precision": "97.25%",
+        "recall": "12.90%",
+        "c_index": "0.00"
+    }
+}
+
+
+
+
 @login_required
 def patient_self_results(request):
     if request.user.role != 'patient':
         return redirect('home')
-    patient = get_object_or_404(Patient, user=request.user)
-    return render(request, 'patients/results.html', {'patient': patient})
+
+    patient = get_object_or_404(Patients, user=request.user)
+
+    # STEP 1: Find the latest submission ID used by this patient
+    latest_strat = Risk_Stratification.objects.filter(patient=patient).exclude(submission_id__isnull=True).order_by('-assessed_at').first()
+
+    if not latest_strat:
+        return render(request, 'patients/results.html', {
+            'patient': patient,
+            'model_results': [],
+            'all_models_inconclusive': True,
+            'all_categories_completed': False,
+            'assessment_date': None
+        })
+
+    latest_submission_id = latest_strat.submission_id
+    assessment_date = latest_strat.assessed_at
+
+    # STEP 2: Fetch only results for models evaluated in this session
+    strat_results = Risk_Stratification.objects.filter(
+        patient=patient,
+        submission_id=latest_submission_id
+    ).select_related('model').order_by('assessed_at')
+
+    model_results = []
+    all_models_inconclusive = True
+    #explainability_plots = {}
+
+    for strat in strat_results:
+        model_name = strat.model.model_name  # e.g., "MRMR_COX_Sociodemographics"
+        category_guess = model_name.replace("MRMR_COX_", "").replace("_", " ").strip().title()
+
+        if strat.recommendation in ['Low Risk', 'High Risk']:
+            all_models_inconclusive = False
+
+        # Define plot  path based on how the SHAP image is saved
+        plot_path = f"patient_plots/patient_{patient.patient_id}_explain_{model_name}.png"
+
+        # Add explainability plot to the dictionary (for use in template)
+        #explainability_plots[model_name] = plot_path
+
+        # Dynamically construct the expected plot path
+        relative_plot_path = f"patient_plots/patient_{patient.patient_id}_explain_{model_name}.png"
+        static_dir = settings.STATIC_ROOT
+        if static_dir is None:
+            # Use first STATICFILES_DIR in development
+            static_dir = settings.STATICFILES_DIRS[0]
+
+        absolute_plot_path = os.path.join(static_dir, relative_plot_path)
+
+        # Debugging:
+        print(f"🔍 Checking file at: {absolute_plot_path}")
+        if os.path.exists(absolute_plot_path):
+            plot_path = relative_plot_path
+        else:
+            print(f"❌ Plot missing for model: {model_name}")
+            plot_path = None
+
+        model_results.append({
+            'category': category_guess,
+            'prediction_score': round(strat.risk_score, 2),
+            'risk_category': strat.recommendation,
+            'plot_path': plot_path,
+            **MODEL_METRICS.get(model_name, {
+                "accuracy": "N/A",
+                "auroc": "N/A",
+                "precision": "N/A",
+                "recall": "N/A",
+                "c_index": "N/A"
+                })
+            })
+       
+    return render(request, 'patients/results.html', {
+        'patient': patient,
+        'model_results': model_results,
+        'all_models_inconclusive': all_models_inconclusive,
+        'all_categories_completed': len(model_results) == len(CATEGORY_ORDER),
+        'assessment_date': assessment_date,
+    })
+
+
 
 
 @login_required
 def clinician_patient_results(request, patient_id=None):
+    # Step 1: Determine the patient based on role
     if request.user.role == 'patient':
-        # Patients can only view their own results
-        patient = get_object_or_404(Patient, user=request.user)
+        patient = get_object_or_404(Patients, user=request.user)
     elif request.user.role == 'clinician_approved':
-        # Clinicians must access using patient_id
         if not patient_id:
-            return redirect('clinician_dashboard')  # or show an error
-        patient = get_object_or_404(Patient, id=patient_id)
+            return redirect('clinician_dashboard')
+        patient = get_object_or_404(Patients, id=patient_id)
     else:
-        return redirect('home')  # or raise permission denied
+        return redirect('home')
 
-    # You can now fetch the latest results for this patient
-    # Replace the below line with actual result fetching logic
-    context = {
+    # Step 2: Fetch only the completed models (not all 7)
+    results = []
+    try:
+        # Get all stratification results for this patient, ordered latest first
+        strat_results = (
+            Risk_Stratification.objects.filter(patient=patient)
+            .select_related("model")
+            .order_by("-assessed_at")
+        )
+
+        # Track the models already included
+        seen_model_names = set()
+
+        for strat in strat_results:
+            model = strat.model
+            model_name = model.model_name
+            if model_name in seen_model_names:
+                continue  # Avoid duplicates if multiple entries exist
+            seen_model_names.add(model_name)
+
+            # Derive category name from mapping
+            category = None
+            for k, v in MODEL_FILE_MAPPING.items():
+                if os.path.basename(v).replace(".pkl", "") == model_name:
+                    category = k
+                    break
+
+            if not category:
+                continue  # Skip if mapping fails
+
+            results.append({
+                'category': category,
+                'score': round(strat.risk_score, 2),
+                'risk': strat.recommendation,
+                'plot_path': f"/static/patient_plots/patient_{patient.id}_{model_name}.png",
+                **MODEL_METRICS.get(model_name, {
+                    "accuracy": "N/A",
+                    "auroc": "N/A",
+                    "precision": "N/A",
+                    "recall": "N/A"
+                    })
+                })
+
+    except Exception as e:
+        print(f"⚠️ Error processing results: {e}")
+
+    return render(request, 'patients/results.html', {
         'patient': patient,
-        # 'results': latest_results,
-    }
-    return render(request, 'patients/results.html', context)
+        'model_results': results
+    })
 
+
+
+@login_required
 @login_required
 def assessment_history(request):
     if request.user.role != 'patient':
         return redirect('home')
-    return render(request, 'patients/history.html')
+
+    # Get the patient object
+    patient = Patients.objects.get(user=request.user)
+
+    # Group assessments by submission_id and get the latest timestamp
+    assessment_groups = (
+        Risk_Stratification.objects
+        .filter(patient=patient)
+        .values('submission_id')
+        .annotate(assessed_at=Max('assessed_at'))
+        .order_by('-assessed_at')
+    )
+
+    return render(request, 'patients/history.html', {
+        'assessments': assessment_groups
+    })
+
 
 @login_required
-def patient_learn(request):
-    return render(request, 'learn.html')
+def view_results_by_submission(request, submission_id):
+    if request.user.role != 'patient':
+        return redirect('home')
+
+    patient = Patients.objects.get(user=request.user)
+
+    results = Risk_Stratification.objects.filter(
+        patient=patient,
+        submission_id=submission_id
+    ).select_related('model')
+
+    return render(request, 'patients/view_results.html', {
+        'results': results,
+        'submission_id': submission_id
+    })
+
 
 
 @login_required
-def clinician_dashboard(request):
+def learn_cvd(request):
+    return render(request, 'medilab/learn.html')
+
+
+@login_required
+def patient_risk_panel(request):
     if request.user.role != 'clinician_approved':
         return redirect('home')
 
@@ -441,7 +740,7 @@ def clinician_dashboard(request):
     intermediate_risk_count = len([p for p in patient_data if p.get('recommendation') == 'Intermediate Risk'])
     low_risk_count = len([p for p in patient_data if p.get('recommendation') == 'Low Risk'])
 
-    return render(request, 'clinicians/clinician_dashboard.html', {
+    return render(request, 'clinicians/patient_risk_panel.html', {
         'patient_data': patient_data,
         'high_risk_patients': high_risk_patients,
         'total_patients': total_patients,
@@ -461,12 +760,7 @@ def signup_view(request):
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            print(" User created:", user)
-            print(" Role:", user.role)
-
-            # Optional: Create patient profile if required
-            Patients.objects.create(user=user)
-
+            sex = form.cleaned_data.get('sex')
             login(request, user)
             return redirect('patient_dashboard')
         else:
@@ -476,9 +770,438 @@ def signup_view(request):
     return render(request, 'users/signup.html', {'form': form})
 
 
+
 # Create your views here.
 def home_view(request):
     return render(request, 'medilab/starter-page.html')
 
 def request_access_view(request):
     return render(request, 'users/request-access.html')
+
+# Updated Mohammed's view to match merged schema
+@login_required
+def admin_panel(request):
+    if request.user.role != 'clinician_approved' and not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('home')  # Replace with appropriate home URL name
+
+    # Get all users by role
+    all_users = Users.objects.all().order_by('date_joined')
+    clinicians = Clinicians.objects.select_related('user').all().order_by('created_at')
+    patients = Patients.objects.select_related('user').all().order_by('created_at')
+
+    context = {
+        'all_users': all_users,
+        'clinicians': clinicians,
+        'patients': patients,
+    }
+    return render(request, 'cardiovascular_app/admin_panel.html', context)
+
+
+
+def batch_prediction(request):
+    # Define all required columns for batch prediction
+    required_columns = [
+        'nhs_number', 'age', 'gender', 'height', 'weight',
+        'apolipoprotein_b', 'apolipoprotein_a1', 'alanine', 'glutamine', 'glycine',
+        'histidine', 'total_concentration_of_branched_chain_amino_acids_leucine_isoleucine_valine',
+        'isoleucine', 'leucine', 'valine', 'phenylalanine', 'tyrosine',
+        'average_diameter_for_vldl_particles', 'average_diameter_for_ldl_particles',
+        'average_diameter_for_hdl_particles', 'total_concentration_of_lipoprotein_particles',
+        'concentration_of_vldl_particles', 'concentration_of_ldl_particles',
+        'concentration_of_hdl_particles',
+        'concentration_of_chylomicrons_and_extremely_large_vldl_particles',
+        'concentration_of_very_large_vldl_particles', 'concentration_of_large_vldl_particles',
+        'concentration_of_medium_vldl_particles', 'concentration_of_small_vldl_particles',
+        'concentration_of_very_small_vldl_particles', 'concentration_of_idl_particles',
+        'concentration_of_large_ldl_particles', 'concentration_of_medium_ldl_particles',
+        'concentration_of_small_ldl_particles', 'concentration_of_very_large_hdl_particles',
+        'concentration_of_large_hdl_particles', 'concentration_of_medium_hdl_particles',
+        'concentration_of_small_hdl_particles', 'total_cholesterol',
+        'total_cholesterol_minus_hdl_c', 'remnant_cholesterol_non_hdl', 'non_ldl_cholesterol',
+        'vldl_cholesterol', 'clinical_ldl_cholesterol', 'ldl_cholesterol', 'hdl_cholesterol',
+        'cholesterol_in_chylomicrons_and_extremely_large_vldl', 'cholesterol_in_very_large_vldl',
+        'cholesterol_in_large_vldl', 'cholesterol_in_medium_vldl', 'cholesterol_in_small_vldl',
+        'cholesterol_in_very_small_vldl', 'cholesterol_in_idl', 'cholesterol_in_large_ldl',
+        'cholesterol_in_medium_ldl', 'cholesterol_in_small_ldl', 'cholesterol_in_very_large_hdl',
+        'cholesterol_in_large_hdl', 'cholesterol_in_medium_hdl', 'cholesterol_in_small_hdl',
+        'total_esterified_cholesterol', 'cholesteryl_esters_in_vldl', 'cholesteryl_esters_in_ldl',
+        'cholesteryl_esters_in_hdl',
+        'cholesteryl_esters_in_chylomicrons_and_extremely_large_vldl',
+        'cholesteryl_esters_in_very_large_vldl', 'cholesteryl_esters_in_large_vldl',
+        'cholesteryl_esters_in_medium_vldl', 'cholesteryl_esters_in_small_vldl',
+        'cholesteryl_esters_in_very_small_vldl', 'cholesteryl_esters_in_idl',
+        'cholesteryl_esters_in_large_ldl', 'cholesteryl_esters_in_medium_ldl',
+        'cholesteryl_esters_in_small_ldl', 'cholesteryl_esters_in_very_large_hdl',
+        'cholesteryl_esters_in_large_hdl', 'cholesteryl_esters_in_medium_hdl',
+        'cholesteryl_esters_in_small_hdl', 'total_free_cholesterol', 'free_cholesterol_in_vldl',
+        'free_cholesterol_in_ldl', 'free_cholesterol_in_hdl',
+        'free_cholesterol_in_chylomicrons_and_extremely_large_vldl',
+        'free_cholesterol_in_very_large_vldl', 'free_cholesterol_in_large_vldl',
+        'free_cholesterol_in_medium_vldl', 'free_cholesterol_in_small_vldl',
+        'free_cholesterol_in_very_small_vldl', 'free_cholesterol_in_idl',
+        'free_cholesterol_in_large_ldl', 'free_cholesterol_in_medium_ldl',
+        'free_cholesterol_in_small_ldl', 'free_cholesterol_in_very_large_hdl',
+        'free_cholesterol_in_large_hdl', 'free_cholesterol_in_medium_hdl',
+        'free_cholesterol_in_small_hdl', 'total_phospholipids_in_lipoprotein_particles',
+        'phospholipids_in_vldl', 'phospholipids_in_ldl', 'phospholipids_in_hdl',
+        'phospholipids_in_chylomicrons_and_extremely_large_vldl',
+        'phospholipids_in_very_large_vldl', 'phospholipids_in_large_vldl',
+        'phospholipids_in_medium_vldl', 'phospholipids_in_small_vldl',
+        'phospholipids_in_very_small_vldl', 'phospholipids_in_idl',
+        'phospholipids_in_large_ldl', 'phospholipids_in_medium_ldl',
+        'phospholipids_in_small_ldl', 'phospholipids_in_very_large_hdl',
+        'phospholipids_in_large_hdl', 'phospholipids_in_medium_hdl',
+        'phospholipids_in_small_hdl', 'total_lipids_in_lipoprotein_particles',
+        'total_lipids_in_vldl', 'total_lipids_in_ldl', 'total_lipids_in_hdl',
+        'total_lipids_in_chylomicrons_and_extremely_large_vldl',
+        'total_lipids_in_very_large_vldl', 'total_lipids_in_large_vldl',
+        'total_lipids_in_medium_vldl', 'total_lipids_in_small_vldl',
+        'total_lipids_in_very_small_vldl', 'total_lipids_in_idl',
+        'total_lipids_in_large_ldl', 'total_lipids_in_medium_ldl',
+        'total_lipids_in_small_ldl', 'total_lipids_in_very_large_hdl',
+        'total_lipids_in_large_hdl', 'total_lipids_in_medium_hdl',
+        'total_lipids_in_small_hdl', 'phosphoglycerides', 'total_cholines',
+        'phosphatidylcholines', 'sphingomyelins', 'total_triglycerides',
+        'triglycerides_in_vldl', 'triglycerides_in_ldl', 'triglycerides_in_hdl',
+        'triglycerides_in_chylomicrons_and_extremely_large_vldl',
+        'triglycerides_in_very_large_vldl', 'triglycerides_in_large_vldl',
+        'triglycerides_in_medium_vldl', 'triglycerides_in_small_vldl',
+        'triglycerides_in_very_small_vldl', 'triglycerides_in_idl',
+        'triglycerides_in_large_ldl', 'triglycerides_in_medium_ldl',
+        'triglycerides_in_small_ldl', 'triglycerides_in_very_large_hdl',
+        'triglycerides_in_large_hdl', 'triglycerides_in_medium_hdl',
+        'triglycerides_in_small_hdl', 'total_fatty_acids', 'degree_of_unsaturation',
+        'omega_3_fatty_acids', 'omega_6_fatty_acids', 'polyunsaturated_fatty_acids',
+        'monounsaturated_fatty_acids', 'saturated_fatty_acids', 'linoleic_acid',
+        'docosahexaenoic_acid', 'glucose', 'lactate', 'pyruvate', 'citrate',
+        '3_hydroxybutyrate', 'acetate', 'acetoacetate', 'acetone', 'creatinine',
+        'albumin', 'glycoprotein_acetyls',
+        'standard_prs_for_alzheimer_s_disease_ad', 'standard_prs_for_cardiovascular_disease_cvd',
+        'standard_prs_for_type_1_diabetes_t1d', 'standard_prs_for_type_2_diabetes_t2d',
+        'standard_prs_for_atrial_fibrillation_af', 'standard_prs_for_coronary_artery_disease_cad',
+        'standard_prs_for_venous_thromboembolic_disease_vte', 'standard_prs_for_ischaemic_stroke_iss',
+        'standard_prs_for_asthma_ast', 'standard_prs_for_melanoma_mel',
+        'standard_prs_for_bowel_cancer_crc', 'standard_prs_for_prostate_cancer_pc',
+        'standard_prs_for_breast_cancer_bc', 'standard_prs_for_parkinson_s_disease_pd',
+        'standard_prs_for_osteoporosis_op', 'standard_prs_for_primary_open_angle_glaucoma_poag',
+        'standard_prs_for_hypertension_ht'
+    ]
+
+    if request.method == 'POST':
+        if 'csv_file' not in request.FILES:
+            return render(request, 'clinicians/batch_prediction.html', {'error': 'No file uploaded'})
+        
+        csv_file = request.FILES['csv_file']
+        if not csv_file.name.endswith('.csv'):
+            return render(request, 'clinicians/batch_prediction.html', {'error': 'Please upload a CSV file'})
+        
+        # Check if the confirmation checkbox is checked
+        if not request.POST.get('confirm_data'):
+            return render(request, 'clinicians/batch_prediction.html', {'error': 'Please confirm that you have reviewed the data'})
+        
+        try:
+            # Read the CSV file
+            df = pd.read_csv(csv_file)
+            
+            # Clean column names: strip whitespace, convert to lowercase, and replace spaces/special characters with underscores
+            df.columns = df.columns.str.strip().str.lower().str.replace(r'[^a-z0-9]+', '_', regex=True)
+
+            # Ensure all required columns exist in the DataFrame, adding them with NaN if not present
+            for col in required_columns:
+                if col not in df.columns:
+                    df[col] = np.nan
+
+            # Impute missing values (NaNs) across the DataFrame
+            for col in required_columns:
+                if col in ['nhs_number', 'age', 'height', 'weight'] or 'cholesterol' in col or 'triglycerides' in col or 'glucose' in col or 'pressure' in col or 'acid' in col or 'lactate' in col or 'pyruvate' in col or 'citrate' in col or 'creatinine' in col or 'albumin' in col or 'glycoprotein' in col or 'prs' in col or 'diameter' in col or 'concentration' in col or 'lipids' in col or 'phospholipids' in col or 'esters' in col or 'fatty' in col or 'cholines' in col or 'hydroxybutyrate' in col or 'acetate' in col or 'acetoacetate' in col or 'acetone' in col: 
+                    df[col] = df[col].fillna(0)  # Impute numerical with 0
+                elif col in ['gender', 'smoking', 'alcohol']:
+                    df[col] = df[col].fillna('unknown') # Impute categorical with 'unknown'
+                else:
+                    df[col] = df[col].fillna('') # Impute other with empty string
+
+            # Calculate completeness based on original non-NaN values for display purposes
+            initial_present_columns = [col for col in required_columns if df[col].dropna().any()]
+            present_columns_count = len(initial_present_columns)
+            total_required_columns = len(required_columns)
+            
+            if total_required_columns > 0:
+                completeness_percentage = (present_columns_count / total_required_columns) * 100
+            else:
+                completeness_percentage = 0
+
+            missing_columns_for_display = [col for col in required_columns if col not in initial_present_columns]
+
+            # Now proceed with mock prediction
+            df['predicted_risk'] = np.random.uniform(0, 1, size=len(df))
+            df['risk_category'] = pd.cut(df['predicted_risk'], 
+                                       bins=[0, 0.2, 0.4, 0.6, 0.8, 1.0],
+                                       labels=['Very Low', 'Low', 'Medium', 'High', 'Very High'])
+            
+            # Store the DataFrame and completeness info in the session
+            request.session['predicted_df'] = df.to_json(orient='records')
+            request.session['completeness_info'] = {
+                'present_columns_count': present_columns_count,
+                'total_required_columns': total_required_columns,
+                'completeness_percentage': round(completeness_percentage, 2),
+                'missing_columns': missing_columns_for_display,
+            }
+            
+            # Get rows per page from request, default to 25
+            rows_per_page = int(request.GET.get('rows_per_page', 25))
+            
+            # Convert DataFrame to list of dictionaries for pagination
+            data = df.to_dict('records')
+            
+            # Create paginator
+            paginator = Paginator(data, rows_per_page)
+            page_number = request.GET.get('page', 1)
+            page_obj = paginator.get_page(page_number)
+            
+            return render(request, 'clinicians/batch_prediction.html', {
+                'show_results': True,
+                'columns': df.columns.tolist(),
+                'paginated_data': page_obj,
+                'page_obj': page_obj,
+                'rows_per_page': rows_per_page,
+                'present_columns_count': present_columns_count,
+                'total_required_columns': total_required_columns,
+                'completeness_percentage': round(completeness_percentage, 2),
+                'missing_columns': missing_columns_for_display,
+            })
+            
+        except Exception as e:
+            return render(request, 'clinicians/batch_prediction.html', {'error': str(e)})
+    
+    # GET request handling
+    if 'predicted_df' in request.session:
+        try:
+            # Get rows per page from request, default to 25
+            rows_per_page = int(request.GET.get('rows_per_page', 25))
+            
+            # Load the DataFrame from session
+            df = pd.read_json(StringIO(request.session['predicted_df']))
+            
+            # Retrieve completeness info from session
+            completeness_info = request.session.get('completeness_info', {})
+            present_columns_count_get_request = completeness_info.get('present_columns_count', 0)
+            total_required_columns_get_request = completeness_info.get('total_required_columns', 0)
+            completeness_percentage_get_request = completeness_info.get('completeness_percentage', 0)
+            missing_columns_get_request = completeness_info.get('missing_columns', [])
+            
+            # Convert DataFrame to list of dictionaries for pagination
+            data = df.to_dict('records')
+            
+            # Create paginator
+            paginator = Paginator(data, rows_per_page)
+            page_number = request.GET.get('page', 1)
+            page_obj = paginator.get_page(page_number)
+            
+            return render(request, 'clinicians/batch_prediction.html', {
+                'show_results': True,
+                'columns': df.columns.tolist(),
+                'paginated_data': page_obj,
+                'page_obj': page_obj,
+                'rows_per_page': rows_per_page,
+                'present_columns_count': present_columns_count_get_request,
+                'total_required_columns': total_required_columns_get_request,
+                'completeness_percentage': round(completeness_percentage_get_request, 2),
+                'missing_columns': missing_columns_get_request,
+            })
+        except Exception as e:
+            return render(request, 'clinicians/batch_prediction.html', {'error': str(e)})
+    
+    # Initial GET request for the empty form (before any file upload)
+    return render(request, 'clinicians/batch_prediction.html', {'total_required_columns': len(required_columns)})
+
+
+
+@login_required
+def prediction_results_view(request):
+    if request.user.role != 'clinician_approved' and request.user.role != 'admin':
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('home')
+
+    predicted_df_json = request.session.get('predicted_df')
+
+    if not predicted_df_json:
+        messages.error(request, 'No prediction results available.')
+        return redirect('batch_prediction')
+
+    df = pd.read_json(predicted_df_json)
+
+    # Pass the DataFrame with results as a list of dictionaries to the template
+    data_for_template = df.to_dict('records')
+    columns_for_template = df.columns.tolist()
+
+    return render(request, 'clinicians/prediction_results.html', {
+        'data': data_for_template,
+        'columns': columns_for_template
+    })
+
+@login_required
+def download_all_data(request):
+    if request.user.role != 'clinician_approved' and request.user.role != 'admin':
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('home')
+        
+    predicted_df_json = request.session.get('predicted_df')
+    
+    if not predicted_df_json:
+        messages.error(request, 'No prediction results available for download.')
+        return redirect('batch_prediction')
+        
+    df = pd.read_json(predicted_df_json)
+
+    # Create the HttpResponse object with the appropriate CSV header.
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="prediction_results.csv"'
+
+    # Write the DataFrame to the CSV.
+    df.to_csv(path_or_buf=response, index=False)
+
+    return response
+
+@login_required
+def download_filtered_data(request):
+    if request.user.role != 'clinician_approved' and request.user.role != 'admin':
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('home')
+        
+    predicted_df_json = request.session.get('predicted_df')
+    
+    if not predicted_df_json:
+        messages.error(request, 'No prediction results available for download.')
+        return redirect('batch_prediction')
+        
+    df = pd.read_json(predicted_df_json)
+
+    # Get filtering parameters from GET request
+    patient_indices_str = request.GET.get('indices')
+    limit_str = request.GET.get('limit')
+
+    filtered_df = df
+
+    try:
+        if patient_indices_str:
+            patient_indices = [int(i) for i in patient_indices_str.split(',')]
+            # Filter by indices, ensuring indices are within bounds
+            valid_indices = [i for i in patient_indices if 0 <= i < len(df)]
+            filtered_df = df.iloc[valid_indices]
+            if len(valid_indices) != len(patient_indices):
+                 messages.warning(request, 'Some provided patient indices were invalid and were ignored.')
+
+        elif limit_str:
+            limit = int(limit_str)
+            if limit > 0:
+                filtered_df = df.head(limit)
+            else:
+                messages.warning(request, 'Limit must be a positive integer.')
+                filtered_df = pd.DataFrame() # Return empty if limit is invalid
+
+    except ValueError:
+        messages.error(request, 'Invalid filtering parameters.')
+        return redirect('batch_prediction')
+    except Exception as e:
+        messages.error(request, f'Error applying filter: {e}')
+        return redirect('batch_prediction')
+        
+    if filtered_df.empty:
+        messages.info(request, 'No data matched the filtering criteria.')
+        return redirect('batch_prediction')
+
+    # Create the HttpResponse object with the appropriate CSV header.
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="filtered_prediction_results.csv"'
+
+    # Write the DataFrame to the CSV.
+    filtered_df.to_csv(path_or_buf=response, index=False)
+
+    return response
+
+@login_required
+def download_single_patient_data(request, patient_index):
+    if request.user.role != 'clinician_approved' and request.user.role != 'admin':
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('home')
+        
+    predicted_df_json = request.session.get('predicted_df')
+    
+    if not predicted_df_json:
+        messages.error(request, 'No prediction results available for download.')
+        return redirect('batch_prediction')
+        
+    df = pd.read_json(predicted_df_json)
+
+    try:
+        # Check if the index is valid
+        if 0 <= patient_index < len(df):
+            single_patient_df = df.iloc[[patient_index]]
+            
+            # Create the HttpResponse object
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="patient_{patient_index}_data.csv"'
+
+            # Write the DataFrame to the CSV.
+            single_patient_df.to_csv(path_or_buf=response, index=False)
+
+            return response
+        else:
+            messages.error(request, 'Invalid patient index.')
+            return redirect('batch_prediction')
+            
+    except Exception as e:
+        messages.error(request, f'Error downloading single patient data: {e}')
+        return redirect('batch_prediction')
+
+
+@login_required
+def process_pending_batch(request):
+    if request.user.role != 'clinician_approved' and request.user.role != 'admin':
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('home')
+
+    pending_df_json = request.session.get('pending_prediction_df')
+
+    if not pending_df_json:
+        messages.error(request, 'No data found for processing.')
+        return redirect('batch_prediction')
+
+    df = pd.read_json(pending_df_json)
+
+    # Perform the prediction
+    # Mock prediction function (replace with actual model)
+    def predict_risk(row):
+        # This is a simplified mock prediction
+        risk_score = (
+            row['age'] * 0.1 +
+            row['systolic_bp'] * 0.2 +
+            row['cholesterol'] * 0.15 +
+            row['glucose'] * 0.1 +
+            (1 if row['smoking'] == 'yes' else 0) * 20 +
+            (1 if row['alcohol'] == 'yes' else 0) * 10
+        ) / 100
+        return min(max(risk_score, 0), 1)
+
+    # Apply prediction and add results to DataFrame
+    df['risk_score'] = df.apply(lambda row: predict_risk(row), axis=1)
+    df['risk_level'] = df['risk_score'].apply(lambda score: 'High' if score > 0.7 else 'Medium' if score > 0.3 else 'Low')
+
+    # TODO: Implement database saving logic here
+    # Save batch run details and results to the database
+    # Example (will need actual model integration):
+    # batch_run = BatchPredictionRun.objects.create(user=request.user, num_records=len(df), file_name='uploaded_batch.csv') # Replace filename
+    # for index, row in df.iterrows():
+    #     BatchPredictionResultDetail.objects.create(batch_run=batch_run, original_row_index=index, **row.to_dict())
+
+    # Store the final predicted DataFrame in the session
+    request.session['predicted_df'] = df.to_json()
+
+    # Clear the pending data from the session
+    del request.session['pending_prediction_df']
+
+    messages.success(request, 'Batch prediction processed successfully!')
+    return redirect('batch_prediction') # Redirect to the same page to show results
+
+

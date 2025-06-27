@@ -6,11 +6,12 @@ from accounts.views import assessment_view
 
 urlpatterns = [
     path('starter/', views.home_view, name='starter-page'),
+    path('learn-cvd/', views.learn_cvd, name='learn_cvd'),
     path('request-access/', views.request_access_view, name='request_access'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('patient/dashboard/', views.patient_dashboard, name='patient_dashboard'),
-    path('clinician/dashboard/', views.clinician_dashboard, name='clinician_dashboard'),
+    path('clinician/dashboard/', views.patient_risk_panel, name='patient_risk_panel'),
     path('signup/', views.signup_view, name='signup'),
     path('dashboard/', views.role_based_dashboard_redirect, name='dashboard_redirect'),
 
@@ -38,8 +39,19 @@ name='password_reset_complete'),
     path('patient/<int:patient_id>/results/', views.clinician_patient_results, name='clinician_patient_results'),
     path('patient/results/', views.patient_self_results, name='patient_self_results'),
     path('patient/history/', views.assessment_history, name='assessment_history'),
-    path('patient/learn/', views.patient_learn, name='patient_learn'),
+    path('patient/history/<uuid:submission_id>/', views.view_results_by_submission, name='view_results_by_submission'),
+    #path('patient/learn/', views.patient_learn, name='patient_learn'),
 
+
+    # Mohammed's views URLs
+    path('clinician/batch-prediction/', views.batch_prediction, name='batch_prediction'),
+    path('clinician/prediction-results/', views.prediction_results_view, name='prediction_results'),
+    path('download-all-data/', views.download_all_data, name='download_all_data'),
+    path('clinician/download-single-patient-data/<int:patient_index>/', views.download_single_patient_data, name='download_single_patient_data'),
+    path('clinician/download-filtered-data/', views.download_filtered_data, name='download_filtered_data'),
+    path('clinician/process-pending-batch/', views.process_pending_batch, name='process_pending_batch'),
+    #path('clinician/ssreset-batch-prediction/', views.reset_batch_prediction, name='reset_batch_prediction'),
+    path('admin-panel/', views.admin_panel, name='admin_panel')
 
 ]
 

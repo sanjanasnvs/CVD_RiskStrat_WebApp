@@ -10,9 +10,9 @@ from .models import (
     CVD_risk_Patient_Outcomes,
     Risk_Stratification,
     ML_Models,
-    batch_CVD_Risk_Features,
-    batch_CVD_Risk_Model_Features,
-    batch_CVD_Risk_Risk,
+    BatchCVDRiskFeature,
+    BatchPredictionRun,
+    BatchPredictionResultDetail,
     batch_CVD_Risk_Output,
 )
 
@@ -26,8 +26,8 @@ admin.site.register(CVD_risk_Responses)
 admin.site.register(CVD_risk_Patient_Outcomes)
 admin.site.register(Risk_Stratification)
 admin.site.register(ML_Models)
-admin.site.register(batch_CVD_Risk_Features)
-admin.site.register(batch_CVD_Risk_Model_Features)
-admin.site.register(batch_CVD_Risk_Risk)
+admin.site.register(BatchCVDRiskFeature)
+admin.site.register(BatchPredictionRun)
+admin.site.register(BatchPredictionResultDetail)
 admin.site.register(batch_CVD_Risk_Output)
 
