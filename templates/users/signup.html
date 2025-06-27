@@ -30,7 +30,7 @@
         <div class="alert alert-info text-center mb-3">
           For <strong>patients only</strong>. If you are a clinician, please use the <a href="{% url 'request_access' %}">Request Access</a> form.
         </div>
-        <form method="post" class="php-email-form" id="signup-form" onsubmit="return validateForm()" novalidate>
+        <form method="post" class="php-email-form" id="signup-form" novalidate>
           {% csrf_token %}
           <div class="row">
             <div class="col-md-6 mb-3">
@@ -44,14 +44,24 @@
           </div>
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label for="id_clinician_id" class="form-label">Requesting Doctor</label>
-              <select name="clinician_id" class="form-control" id="id_clinician_id">
+              <label for="id_biological_sex" class="form-label">Biological Sex</label>
+              <select name="biological_sex" class="form-control" id="id_biological_sex">
+                <option value="">Select...</option>
+                <option value="Male" {% if form.biological_sex.value == 'Male' %}selected{% endif %}>Male</option>
+                <option value="Female" {% if form.biological_sex.value == 'Female' %}selected{% endif %}>Female</option>
+              </select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="id_clinician" class="form-label">Requesting Doctor</label>
+              <select name="clinician" class="form-control" id="id_clinician_id">
                 <option value="">Select a doctor...</option>
                 {% for clinician in clinicians %}
                   <option value="{{ clinician.clinician_id }}">Dr. {{ clinician.user.first_name }} {{ clinician.user.last_name }}</option>
                 {% endfor %}
               </select>
             </div>
+          </div>
+          <div class="row">
             <div class="col-md-6 mb-3">
               <label for="id_email" class="form-label">Email Address</label>
               <input type="email" name="email" class="form-control" id="id_email" placeholder="Email Address" value="{{ form.email.value|default:'' }}">
@@ -94,11 +104,16 @@
           </div>
           {% if form.errors %}
             <div class="alert alert-danger mt-3">
-              {% for field in form %}
-                {% for error in field.errors %}
-                  <p>{{ error }}</p>
+              <ul>
+                {% for field in form %}
+                  {% for error in field.errors %}
+                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                  {% endfor %}
                 {% endfor %}
-              {% endfor %}
+                {% for error in form.non_field_errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
             </div>
           {% endif %}
           <div class="d-grid mt-3">

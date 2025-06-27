@@ -75,6 +75,20 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">All Users</h5>
+                        <form method="get" class="mb-3" id="roleFilterForm">
+                            <div class="row g-2 align-items-center">
+                                <div class="col-auto">
+                                    <label for="roleFilter" class="col-form-label">Filter by:</label>
+                                </div>
+                                <div class="col-auto">
+                                    <select class="form-select" id="roleFilter" name="role_filter" onchange="document.getElementById('roleFilterForm').submit();">
+                                        <option value="" {% if not role_filter %}selected{% endif %}>All</option>
+                                        <option value="clinician" {% if role_filter == 'clinician' %}selected{% endif %}>Clinicians</option>
+                                        <option value="patient" {% if role_filter == 'patient' %}selected{% endif %}>Patients</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
                         
                         {% if all_users %}
                             <div class="table-responsive">
@@ -83,7 +97,7 @@
                                         <tr>
                                             <th>Name</th>
                                             <th>Email</th>
-                                            <th>Affiliation</th>
+                                            <th>Affiliation/Requesting Dr</th>
                                             <th>Registration Date/Time</th>
                                             <th>Status/Role</th>
                                             <th>Actions</th>
@@ -95,18 +109,32 @@
                                                 <td>{{ user_obj.first_name }} {{ user_obj.last_name }}</td>
                                                 <td>{{ user_obj.email }}</td>
                                                 <td>
-                                                    {% if user_obj.role == 'clinician_approved' %}
+                                                    {% if user_obj.role == 'clinician_approved' or user_obj.role == 'clinician_pending' %}
                                                         {% with clinician=user_obj.clinicians %}
-                                                            {{ clinician.specialty }}
+                                                            {{ clinician.specialty|default:'-' }}
                                                         {% endwith %}
+                                                    {% elif user_obj.role == 'patient' %}
+                                                        {% with patient=user_obj.patients %}
+                                                            {% if patient.clinician %}
+                                                                Dr. {{ patient.clinician.user.first_name }} {{ patient.clinician.user.last_name }}
+                                                            {% else %}
+                                                                -
+                                                            {% endif %}
+                                                        {% endwith %}
+                                                    {% else %}
+                                                        -
                                                     {% endif %}
                                                 </td>
                                                 <td>{{ user_obj.date_joined|date:"Y-m-d H:i" }}</td>
                                                 <td>
                                                     {% if user_obj.role == 'clinician_approved' %}
-                                                        <span class="badge bg-success">Approved</span>
+                                                        <span class="badge bg-success">Clinician (Approved)</span>
+                                                    {% elif user_obj.role == 'patient' %}
+                                                        <span class="badge bg-primary">Patient</span>
+                                                    {% elif user_obj.role == 'clinician_pending' %}
+                                                        <span class="badge bg-warning text-dark">Clinician (Pending)</span>
                                                     {% else %}
-                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                        <span class="badge bg-secondary">{{ user_obj.role|capfirst }}</span>
                                                     {% endif %}
                                                 </td>
                                                 <td>

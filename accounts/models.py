@@ -27,16 +27,13 @@ class CustomUserManager(BaseUserManager):
 
 
 class Users(AbstractUser):
-    user_id = models.AutoField(primary_key=True)
+    username = None  # Remove the username field
     email = models.EmailField(unique=True)
-    password = models.CharField(max_length=255)  
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=True)  # Required for access to admin
-    is_superuser = models.BooleanField(default=True)  # Required for superuser privileges
-    def get_username(self):
-        return self.email
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
     role = models.CharField(
         max_length=20,
         choices=[
@@ -47,8 +44,8 @@ class Users(AbstractUser):
     )
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
-    #  Plug in the custom manager here
+    REQUIRED_FIELDS = ['first_name', 'last_name']
+
     objects = CustomUserManager()
 
     class Meta:

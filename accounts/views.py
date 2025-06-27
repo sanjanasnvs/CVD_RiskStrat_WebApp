@@ -481,8 +481,9 @@ def signup_view(request):
                 except Clinicians.DoesNotExist:
                     clinician = None
 
-            # Create patient profile and link to clinician
-            Patients.objects.create(user=user, clinician=clinician)
+            # Get biological sex from form and save as gender in Patients
+            biological_sex = form.cleaned_data.get('biological_sex')
+            Patients.objects.create(user=user, clinician=clinician, gender=biological_sex)
 
             login(request, user)
             return redirect('patient_dashboard')
@@ -556,10 +557,17 @@ def contact_view(request):
 @user_passes_test(is_admin)
 def admin_panel(request):
     all_access_requests = ClinicianAccessRequest.objects.filter(status='pending')
-    all_users = Users.objects.all()
+    role_filter = request.GET.get('role_filter')
+    if role_filter == 'clinician':
+        all_users = Users.objects.filter(role__in=['clinician_approved', 'clinician_pending'])
+    elif role_filter == 'patient':
+        all_users = Users.objects.filter(role='patient')
+    else:
+        all_users = Users.objects.all()
     return render(request, 'admin/admin_panel.html', {
         'all_access_requests': all_access_requests,
         'all_users': all_users,
+        'role_filter': role_filter,
     })
 
 @login_required

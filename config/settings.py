@@ -82,7 +82,7 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
-        "NAME": "CVD_Risk",
+        "NAME": "cvd_risk",
 	"USER": "root",
 	"PASSWORD": "first123",
 	"HOST": "localhost",
