@@ -117,23 +117,40 @@ rel="stylesheet">
       color: #198754;
     }
     
-    .question-item {
+    .question-block {
       margin-bottom: 2rem;
       padding: 1.5rem;
       border-radius: 8px;
       background-color: #f8f9fa;
       border-left: 4px solid #1977cc;
+      transition: all 0.3s ease;
     }
     
-    /* Add slight visual indication for dependent questions */
-    .question-item.dependent-question {
+    /* Conditional questions styling */
+    .question-block[data-conditional="true"] {
       border-left-color: #6c757d;
       border-left-width: 4px;
       background-color: #f3f6f9;
       margin-left: 1rem;
+      opacity: 0.9;
     }
     
-    .question-item:last-child {
+    .question-block[data-conditional="true"].showing {
+      animation: slideIn 0.3s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .question-block:last-child {
       margin-bottom: 0;
     }
     
@@ -293,13 +310,11 @@ rel="stylesheet">
           <a href="#" class="linkedin"><i class="bi bi-linkedin"></i></a>
         </div>
       </div>
-    </div><!-- End Top Bar -->
+    </div>
 
     <div class="branding d-flex align-items-center">
       <div class="container position-relative d-flex align-items-center justify-content-between">
         <a href="{% url 'starter-page' %}" class="logo d-flex align-items-center me-auto">
-          <!-- Uncomment the line below if you also wish to use an image logo -->
-          <!-- <img src="{% static 'medilab/assets/img/logo.png' %}" alt=""> -->
           <h1 class="sitename">CVD Risk Predictor</h1>
         </a>
 
@@ -314,25 +329,21 @@ rel="stylesheet">
                <ul class="navbar-nav ms-auto">
                   <li class="nav-item"><a class="nav-link" href="{% url 'starter-page' %}">Home</a></li>
                   <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                  <li class="nav-item"><a class="nav-link" href="{% url 'learn_cvd' %}">Learn About CVD</a></li>
                   <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
 
-                  <!-- Only show appropriate CVD Risk links based on user type -->
                   {% if user.is_authenticated %}
-                    {% if user.is_patient %}
+                    {% if user.role == 'patient' %}
                       <li class="nav-item"><a class="nav-link active" href="{% url 'patient_dashboard' %}">CVD Risk for Patients</a></li>
-                    {% elif user.is_clinician %}
+                    {% elif user.role == 'clinician_approved' %}
                       <li class="nav-item"><a class="nav-link" href="{% url 'clinician_dashboard' %}">CVD Risk for Clinicians</a></li>
-                      <li class="nav-item"><a class="nav-link" href="{% url 'researcher_dashboard' %}">CVD Risk for Researchers</a></li>
                     {% endif %}
                     
-                    <!-- User dropdown menu -->
                     <li class="nav-item dropdown">
                       <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-person-circle me-1"></i>{{ user.username }}
                       </a>
                       <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                        <li><a class="dropdown-item" href="#">My Profile</a></li>
-                        <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
                       </ul>
                     </li>
@@ -454,7 +465,7 @@ rel="stylesheet">
                 </div>
               </div>
             {% else %}
-              <!-- Assessment Form - All questions come from backend after filtering for dependencies -->
+              <!-- Assessment Form with Dynamic Conditional Logic -->
               <div class="card shadow assessment-form" data-aos="fade-up" data-aos-delay="200">
                 <div class="card-body">
                   <h3 class="form-section-title">{{ category|default:"Assessment" }}</h3>
@@ -464,91 +475,109 @@ rel="stylesheet">
                     
                     {% if question_data %}
                       {% for item in question_data %}
-                        <!-- Each question block - CSS class changes if it's a dependent question -->
-                        <div class="question-item {% if item.has_dependency %}dependent-question{% endif %}">
-                          <div class="question-stem required-field">
-                            {{ item.question.question_text }}
-                          </div>
+                        {% with q=item.question %}
+                          <!-- Enhanced question block with conditional logic data attributes -->
+                          <div class="question-block"
+                               id="question_{{ q.question_id }}"
+                               {% if q.trigger_questions.all %}
+                                 data-conditional="true"
+                                 {% for dep in q.trigger_questions.all %}
+                                   data-trigger-id="{{ dep.triggering_question.question_id }}"
+                                   data-trigger-values="{{ dep.trigger_values }}"
+                                 {% endfor %}
+                               {% else %}
+                                 data-conditional="false"
+                               {% endif %}
+                               style="{% if q.trigger_questions.all %}display: none;{% endif %}">
 
-                          <div class="question-options">
-                            {% if item.answer_type == "Enter integer answer" %}
-                              <!-- Numeric input - uses item.response directly -->
-                              <input type="number"
-                                     class="form-control numeric-input"
-                                     id="question_{{ item.question.question_id }}"
-                                     name="question_{{ item.question.question_id }}"
-                                     value="{{ item.response|default:'' }}"
-                                     placeholder="Enter a number"
-                                     {% if item.required %}required{% endif %}>
-                              <div class="invalid-feedback">
-                                Please provide a valid number.
-                              </div>
+                            <div class="question-stem required-field">
+                              {{ q.question_text }}
+                            </div>
 
-                            {% elif item.answer_type == "Select one answer" %}
-                              <!-- Radio buttons for single selection -->
-                              {% if item.options %}
-                                {% for option in item.options %}
-                                  <div class="form-check">
-                                    <input type="radio"
-                                           class="form-check-input"
-                                           name="question_{{ item.question.question_id }}"
-                                           id="q{{ item.question.question_id }}_opt{{ forloop.counter }}"
-                                           value="{{ option.id }}"
-                                           {% if option.id|stringformat:"s" == item.response_id|stringformat:"s" %}checked{% endif %}
-                                           {% if item.required %}required{% endif %}>
-                                    <label class="form-check-label"
-                                           for="q{{ item.question.question_id }}_opt{{ forloop.counter }}">
-                                      {{ option.option_text }}
-                                    </label>
-                                  </div>
-                                {% endfor %}
-                              {% endif %}
-                              <div class="invalid-feedback">
-                                Please select one option.
-                              </div>
+                            <div class="question-options">
+                              {% if item.answer_type == "Enter integer answer" %}
+                                <!-- Numeric input with conditional logic class -->
+                                <input type="number"
+                                       class="form-control numeric-input question-input"
+                                       id="question_{{ q.question_id }}"
+                                       name="question_{{ q.question_id }}"
+                                       data-question-id="{{ q.question_id }}"
+                                       value="{{ item.response|default:'' }}"
+                                       placeholder="Enter a number"
+                                       {% if item.required %}required{% endif %}>
+                                <div class="invalid-feedback">
+                                  Please provide a valid number.
+                                </div>
 
-                            {% elif item.answer_type == "Toggle multiple answer" %}
-                              <!-- Checkboxes for multiple selection -->
-                              <div class="multiple-select-note">
-                                <i class="bi bi-info-circle me-1"></i>Select all that apply
-                              </div>
-                              {% if item.options %}
-                                <div class="checkbox-group">
+                              {% elif item.answer_type == "Select one answer" %}
+                                <!-- Radio buttons for single selection with conditional logic -->
+                                {% if item.options %}
                                   {% for option in item.options %}
                                     <div class="form-check">
-                                      <input type="checkbox"
-                                             class="form-check-input"
-                                             name="question_{{ item.question.question_id }}_option"
-                                             id="q{{ item.question.question_id }}_opt{{ forloop.counter }}"
+                                      <input type="radio"
+                                             class="form-check-input question-input"
+                                             name="question_{{ q.question_id }}"
+                                             id="q{{ q.question_id }}_opt{{ forloop.counter }}"
+                                             data-question-id="{{ q.question_id }}"
                                              value="{{ option.id }}"
-                                             {% if option.id|stringformat:"s" in item.multi_response_ids %}checked{% endif %}>
+                                             {% if option.id|stringformat:"s" == item.response_id|stringformat:"s" %}checked{% endif %}
+                                             {% if item.required %}required{% endif %}>
                                       <label class="form-check-label"
-                                             for="q{{ item.question.question_id }}_opt{{ forloop.counter }}">
+                                             for="q{{ q.question_id }}_opt{{ forloop.counter }}">
                                         {{ option.option_text }}
                                       </label>
                                     </div>
                                   {% endfor %}
+                                {% endif %}
+                                <div class="invalid-feedback">
+                                  Please select one option.
+                                </div>
+
+                              {% elif item.answer_type == "Toggle multiple answer" %}
+                                <!-- Checkboxes for multiple selection with conditional logic -->
+                                <div class="multiple-select-note">
+                                  <i class="bi bi-info-circle me-1"></i>Select all that apply
+                                </div>
+                                {% if item.options %}
+                                  <div class="checkbox-group">
+                                    {% for option in item.options %}
+                                      <div class="form-check">
+                                        <input type="checkbox"
+                                               class="form-check-input question-input"
+                                               name="question_{{ q.question_id }}_option"
+                                               id="q{{ q.question_id }}_opt{{ forloop.counter }}"
+                                               data-question-id="{{ q.question_id }}"
+                                               value="{{ option.id }}"
+                                               {% if option.id|stringformat:"s" in item.multi_response_ids %}checked{% endif %}>
+                                        <label class="form-check-label"
+                                               for="q{{ q.question_id }}_opt{{ forloop.counter }}">
+                                          {{ option.option_text }}
+                                        </label>
+                                      </div>
+                                    {% endfor %}
+                                  </div>
+                                {% endif %}
+                                <div class="invalid-feedback">
+                                  Please select at least one option.
+                                </div>
+
+                              {% else %}
+                                <!-- Fallback text input with conditional logic -->
+                                <input type="text"
+                                       class="form-control text-input question-input"
+                                       id="question_{{ q.question_id }}"
+                                       name="question_{{ q.question_id }}"
+                                       data-question-id="{{ q.question_id }}"
+                                       value="{{ item.response|default:'' }}"
+                                       placeholder="Enter your answer"
+                                       {% if item.required %}required{% endif %}>
+                                <div class="invalid-feedback">
+                                  This field is required.
                                 </div>
                               {% endif %}
-                              <div class="invalid-feedback">
-                                Please select at least one option.
-                              </div>
-
-                            {% else %}
-                              <!-- Fallback text input -->
-                              <input type="text"
-                                     class="form-control text-input"
-                                     id="question_{{ item.question.question_id }}"
-                                     name="question_{{ item.question.question_id }}"
-                                     value="{{ item.response|default:'' }}"
-                                     placeholder="Enter your answer"
-                                     {% if item.required %}required{% endif %}>
-                              <div class="invalid-feedback">
-                                This field is required.
-                              </div>
-                            {% endif %}
+                            </div>
                           </div>
-                        </div>
+                        {% endwith %}
                       {% endfor %}
                     {% else %}
                       <div class="alert alert-info">
@@ -590,18 +619,15 @@ rel="stylesheet">
 
   <footer id="footer" class="footer light-background">
     <div class="container copyright text-center mt-4">
-      <p>© <span>Copyright</span> <strong class="px-1 sitename">Medilab</strong> <span>All 
-Rights Reserved</span></p>
+      <p>© <span>Copyright</span> <strong class="px-1 sitename">CVD Risk Predictor</strong> <span>All Rights Reserved</span></p>
       <div class="credits">
-        Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a> Distributed by <a 
-href="https://themewagon.com">ThemeWagon</a>
+        Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a>
       </div>
     </div>
   </footer>
 
   <!-- Scroll Top -->
-  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center 
-justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+  <a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
 
   <!-- Preloader -->
   <div id="preloader"></div>
@@ -617,59 +643,151 @@ justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
   <!-- Main JS File -->
   <script src="{% static 'medilab/assets/js/main.js' %}?{{ timestamp }}"></script>
 
-  <!-- Enhanced Form Validation Script -->
+  <!-- Real-Time Conditional Logic Script -->
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
+      // Convert trigger values to usable sets and handle comparison operators
+      function matchesTriggerValue(response, triggerValues) {
+        return triggerValues.some(val => {
+          val = val.trim();
+          if (val.startsWith('>=')) return parseFloat(response) >= parseFloat(val.slice(2));
+          if (val.startsWith('<=')) return parseFloat(response) <= parseFloat(val.slice(2));
+          if (val.startsWith('>')) return parseFloat(response) > parseFloat(val.slice(1));
+          if (val.startsWith('<')) return parseFloat(response) < parseFloat(val.slice(1));
+          return response == val;
+        });
+      }
+
+      // Hide or show all dependent questions based on current responses
+      function updateQuestionVisibility() {
+        const inputs = document.querySelectorAll('.question-input');
+        const responses = {};
+
+        // Get current user input values
+        inputs.forEach(input => {
+          const qid = input.dataset.questionId;
+          if (input.tagName === 'SELECT') {
+            responses[qid] = input.value;
+          } else if (input.type === 'radio') {
+            if (input.checked) {
+              responses[qid] = input.value;
+            }
+          } else if (input.type === 'checkbox') {
+            // For checkboxes, we need to handle multiple values
+            if (!responses[qid]) responses[qid] = [];
+            if (input.checked) {
+              responses[qid].push(input.value);
+            }
+          } else if (input.type === 'number' || input.type === 'text') {
+            responses[qid] = input.value;
+          }
+        });
+
+        // Go through conditional question blocks
+        const conditionalQuestions = document.querySelectorAll('.question-block[data-conditional="true"]');
+        conditionalQuestions.forEach(qBlock => {
+          const triggerId = qBlock.dataset.triggerId;
+          const triggerValues = qBlock.dataset.triggerValues.split(',');
+
+          const currentAnswer = responses[triggerId];
+          let shouldShow = false;
+
+          if (currentAnswer !== undefined && currentAnswer !== '') {
+            if (Array.isArray(currentAnswer)) {
+              // For checkbox responses, check if any selected value matches
+              shouldShow = currentAnswer.some(val => matchesTriggerValue(val, triggerValues));
+            } else {
+              shouldShow = matchesTriggerValue(currentAnswer, triggerValues);
+            }
+          }
+
+          // Show/hide with smooth animation
+          if (shouldShow && qBlock.style.display === 'none') {
+            qBlock.style.display = 'block';
+            qBlock.classList.add('showing');
+            // Remove the animation class after animation completes
+            setTimeout(() => qBlock.classList.remove('showing'), 300);
+          } else if (!shouldShow && qBlock.style.display !== 'none') {
+            qBlock.style.display = 'none';
+            
+            // Clear any values in hidden questions to prevent submission of hidden data
+            const hiddenInputs = qBlock.querySelectorAll('.question-input');
+            hiddenInputs.forEach(hiddenInput => {
+              if (hiddenInput.type === 'radio' || hiddenInput.type === 'checkbox') {
+                hiddenInput.checked = false;
+              } else {
+                hiddenInput.value = '';
+              }
+            });
+          }
+        });
+      }
+
+      // Attach change listeners to all question inputs
+      const allInputs = document.querySelectorAll('.question-input');
+      allInputs.forEach(input => {
+        input.addEventListener('change', updateQuestionVisibility);
+        input.addEventListener('input', updateQuestionVisibility); // For real-time typing in number/text inputs
+      });
+
+      // Initial update on page load to show/hide questions based on existing values
+      updateQuestionVisibility();
+
+      // Enhanced Form Validation with conditional logic awareness
       const form = document.getElementById('assessment-form');
       
       if (form) {
         form.addEventListener('submit', function(event) {
           let isValid = true;
           
-          // Check all required inputs (text, number, etc.)
-          const requiredInputs = form.querySelectorAll('input[required]:not([type="radio"]):not([type="checkbox"]), 
-select[required], textarea[required]');
+          // Only validate visible questions
+          const visibleQuestions = form.querySelectorAll('.question-block:not([style*="display: none"])');
           
-          requiredInputs.forEach(input => {
-            if (!input.value.trim()) {
-              isValid = false;
-              input.classList.add('is-invalid');
-            } else {
-              input.classList.remove('is-invalid');
+          visibleQuestions.forEach(questionBlock => {
+            // Check required inputs (text, number, etc.) in visible questions
+            const requiredInputs = questionBlock.querySelectorAll('input[required]:not([type="radio"]):not([type="checkbox"]), select[required], textarea[required]');
+            
+            requiredInputs.forEach(input => {
+              if (!input.value.trim()) {
+                isValid = false;
+                input.classList.add('is-invalid');
+              } else {
+                input.classList.remove('is-invalid');
+              }
+            });
+            
+            // Check radio button groups in visible questions
+            const radioGroups = {};
+            questionBlock.querySelectorAll('input[type="radio"][required]').forEach(radio => {
+              const name = radio.getAttribute('name');
+              radioGroups[name] = radioGroups[name] || false;
+              if (radio.checked) {
+                radioGroups[name] = true;
+              }
+            });
+            
+            for (const groupName in radioGroups) {
+              const isGroupValid = radioGroups[groupName];
+              if (!isGroupValid) {
+                isValid = false;
+                const radios = questionBlock.querySelectorAll(`input[name="${groupName}"]`);
+                radios.forEach(radio => {
+                  radio.classList.add('is-invalid');
+                });
+              } else {
+                const radios = questionBlock.querySelectorAll(`input[name="${groupName}"]`);
+                radios.forEach(radio => {
+                  radio.classList.remove('is-invalid');
+                });
+              }
             }
           });
-          
-          // Check radio button groups (single selection questions)
-          const radioGroups = {};
-          form.querySelectorAll('input[type="radio"][required]').forEach(radio => {
-            const name = radio.getAttribute('name');
-            radioGroups[name] = radioGroups[name] || false;
-            if (radio.checked) {
-              radioGroups[name] = true;
-            }
-          });
-          
-          for (const groupName in radioGroups) {
-            const isGroupValid = radioGroups[groupName];
-            if (!isGroupValid) {
-              isValid = false;
-              const radios = form.querySelectorAll(`input[name="${groupName}"]`);
-              radios.forEach(radio => {
-                radio.classList.add('is-invalid');
-              });
-            } else {
-              const radios = form.querySelectorAll(`input[name="${groupName}"]`);
-              radios.forEach(radio => {
-                radio.classList.remove('is-invalid');
-              });
-            }
-          }
           
           if (!isValid) {
             event.preventDefault();
             
-            // Scroll to first invalid input
-            const firstInvalid = form.querySelector('.is-invalid');
+            // Scroll to first invalid input in visible questions
+            const firstInvalid = form.querySelector('.question-block:not([style*="display: none"]) .is-invalid');
             if (firstInvalid) {
               firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
