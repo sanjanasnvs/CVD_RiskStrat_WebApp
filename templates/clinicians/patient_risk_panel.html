@@ -5,6 +5,12 @@
 
 {% block extra_css %}
 <style>
+  body, html {
+    background: #18191a !important;
+  }
+  .dashboard-container, .container {
+    background: transparent !important;
+  }
   .dashboard-container {
     min-height: calc(100vh - 200px);
     padding-top: 30px;
@@ -373,13 +379,17 @@
       <!-- Card-based Header -->
       <div class="row mb-4" style="gap: 0;">
         <div class="col-12">
-          <div class="dashboard-header" style="border-radius: 28px; background: linear-gradient(135deg, #1977cc 0%, #0056b3 100%); color: #fff; display: flex; align-items: center; justify-content: flex-start; padding: 2.5rem 2.5rem 2rem 2.5rem; box-shadow: 0 10px 30px rgba(25, 119, 204, 0.15);">
+          <div class="dashboard-header" style="border-radius: 28px; background: linear-gradient(135deg, #1977cc 0%, #0056b3 100%); color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 2.5rem 2.5rem 2rem 2.5rem; box-shadow: 0 10px 30px rgba(25, 119, 204, 0.15);">
             <div style="display: flex; align-items: center;">
               <span class="icon" style="font-size: 2.8rem; margin-right: 1.5rem;"><i class="bi bi-heart-pulse"></i></span>
               <div>
                 <h1 class="mb-1" style="font-size: 2.2rem; font-weight: 700; margin-bottom: 0.25rem; letter-spacing: -1px;">Patient Risk Panel</h1>
                 <p style="font-size: 1.1rem; opacity: 0.95; margin-bottom: 0;">Monitor and manage your assigned patients' cardiovascular risk assessments</p>
               </div>
+            </div>
+            <div class="text-white text-end">
+              <div class="h4 mb-1">Dr. {{ user.first_name }} {{ user.last_name }}</div>
+              <small class="opacity-75">{{ user.clinicians.specialty|default:"General Practice" }}</small>
             </div>
           </div>
         </div>
@@ -462,39 +472,45 @@
       </div>
       <!-- Patient Cards List -->
       <div class="patient-cards-list mt-4">
-        {% for patient in patient_data %}
-          <div class="patient-card {% if patient.is_high_risk %}high-risk-alert{% endif %}">
-            <div class="d-flex align-items-center w-100">
-              <span class="avatar-circle">{{ patient.name|slice:':1'|upper }}</span>
-              <div class="ms-3 flex-grow-1">
-                <div class="fw-bold">{{ patient.name }}</div>
-                <div class="text-muted small">{{ patient.email }}</div>
-              </div>
-              <div class="patient-card-info ms-auto">
-                <span class="me-3"><i class="bi bi-calendar"></i> {% if patient.dob %}{{ patient.dob|timesince|slice:':2' }} years{% else %}N/A{% endif %}</span>
-                <span class="me-3"><i class="bi bi-heart-pulse"></i> {% if patient.risk_score %}{{ patient.risk_score }}{% else %}N/A{% endif %}</span>
-                <span class="me-3">
-                  {% if patient.recommendation == 'High Risk' %}
-                    <span class="risk-badge risk-high">High</span>
-                  {% elif patient.recommendation == 'Intermediate Risk' %}
-                    <span class="risk-badge risk-intermediate">Intermediate</span>
-                  {% elif patient.recommendation == 'Low Risk' %}
-                    <span class="risk-badge risk-low">Low</span>
-                  {% else %}
-                    <span class="risk-badge risk-pending">Pending</span>
-                  {% endif %}
-                </span>
-                <span class="me-3"><i class="bi bi-clock"></i> {% if patient.assessed_at %}{{ patient.assessed_at|date:'M d, Y H:i' }}{% else %}No assessment{% endif %}</span>
-              </div>
-              <div>
-                <a href="{% url 'view_patient' patient.patient_id %}" class="action-btn btn-view"><i class="bi bi-eye"></i> View</a>
-                <a href="{% url 'contact_patient' patient.patient_id %}" class="action-btn btn-contact"><i class="bi bi-envelope"></i> Contact</a>
+        {% if patient_data %}
+          {% for patient in patient_data %}
+            <div class="patient-card {% if patient.is_high_risk %}high-risk-alert{% endif %}">
+              <div class="d-flex align-items-center w-100">
+                <span class="avatar-circle">{{ patient.name|slice:':1'|upper }}</span>
+                <div class="ms-3 flex-grow-1">
+                  <div class="fw-bold">{{ patient.name }}</div>
+                  <div class="text-muted small">{{ patient.email }}</div>
+                </div>
+                <div class="patient-card-info ms-auto">
+                  <span class="me-3"><i class="bi bi-calendar"></i> {% if patient.dob %}{{ patient.dob|timesince|slice:':2' }} years{% else %}N/A{% endif %}</span>
+                  <span class="me-3"><i class="bi bi-heart-pulse"></i> {% if patient.risk_score %}{{ patient.risk_score }}{% else %}N/A{% endif %}</span>
+                  <span class="me-3">
+                    {% if patient.recommendation == 'High Risk' %}
+                      <span class="risk-badge risk-high">High</span>
+                    {% elif patient.recommendation == 'Intermediate Risk' %}
+                      <span class="risk-badge risk-intermediate">Intermediate</span>
+                    {% elif patient.recommendation == 'Low Risk' %}
+                      <span class="risk-badge risk-low">Low</span>
+                    {% else %}
+                      <span class="risk-badge risk-pending">Pending</span>
+                    {% endif %}
+                  </span>
+                  <span class="me-3"><i class="bi bi-clock"></i> {% if patient.assessed_at %}{{ patient.assessed_at|date:'M d, Y H:i' }}{% else %}No assessment{% endif %}</span>
+                </div>
+                <div>
+                  <a href="{% url 'view_patient' patient.patient_id %}" class="action-btn btn-view"><i class="bi bi-eye"></i> View</a>
+                  <a href="{% url 'contact_patient' patient.patient_id %}" class="action-btn btn-contact"><i class="bi bi-envelope"></i> Contact</a>
+                </div>
               </div>
             </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state">
+            <i class="bi bi-people" style="font-size: 3.5rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <h4>No Patients Assigned</h4>
+            <p class="text-muted">You don't have any patients assigned to you yet. Contact your administrator for patient assignments.</p>
           </div>
-        {% empty %}
-          <div class="text-center text-muted">No patients found.</div>
-        {% endfor %}
+        {% endif %}
       </div>
     </div>
   </section>

@@ -49,5 +49,14 @@ name='password_reset_complete'),
 
     path('patient-risk-panel/', views.patient_risk_panel, name='patient_risk_panel'),
 
+    path('approve-request/<int:request_id>/', views.approve_request, name='approve_request'),
+    path('reject-request/<int:request_id>/', views.reject_request, name='reject_request'),
+
+    path('download-all-data/', views.download_all_data, name='download_all_data'),
+    path('download-filtered-data/', views.download_filtered_data, name='download_filtered_data'),
+    path('download-single-patient-data/<int:row_index>/', views.download_single_patient_data, name='download_single_patient_data'),
+
+    path('download_patient_plots/<int:row_index>/', views.download_patient_plots, name='download_patient_plots'),
+
 ]
 

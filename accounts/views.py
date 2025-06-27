@@ -3,21 +3,26 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect
 from django.contrib import messages
-from .models import Users
+from .models import Users, ClinicianAccessRequest
 from .forms import CustomUserCreationForm
 from .models import *
 from django.shortcuts import get_object_or_404
 import joblib
 import pandas as pd
 import numpy as np
-from django.http import JsonResponse, FileResponse, Http404
+from django.http import JsonResponse, FileResponse, Http404, HttpResponse
 from django.db import DatabaseError
 from django.db import transaction, connection
-from django.views.decorators.http import require_http_methods
-from utils import calculate_features_from_responses, should_display_question
+from django.views.decorators.http import require_http_methods, require_POST
+from utils import calculate_features_from_responses, should_display_question, generate_survshap_plots
 from datetime import datetime
 import os
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.hashers import make_password
+import json
+import io
+import zipfile
 
 
 thresholds = pd.read_csv("model_files/FinalSolFront1 (1).csv").iloc[0]
@@ -459,6 +464,7 @@ def logout_view(request):
     return redirect('login')
 
 def signup_view(request):
+    from .models import Clinicians, Users
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
@@ -475,14 +481,56 @@ def signup_view(request):
             print(" Form errors:", form.errors)
     else:
         form = CustomUserCreationForm()
-    return render(request, 'users/signup.html', {'form': form})
+    # Only pass approved clinicians
+    clinicians = Clinicians.objects.filter(user__role='clinician_approved')
+    return render(request, 'users/signup.html', {'form': form, 'clinicians': clinicians})
 
 
 # Create your views here.
 def home_view(request):
-    return render(request, 'home.html')
+    pending_access_requests_count = 0
+    total_approved_users = 0
+    total_clinicians = 0
+    total_patients = 0
+    if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
+        from .models import ClinicianAccessRequest, Users
+        pending_access_requests_count = ClinicianAccessRequest.objects.filter(status='pending').count()
+        total_approved_users = Users.objects.filter(role='clinician_approved').count()
+        total_clinicians = Users.objects.filter(role='clinician_approved').count()
+        total_patients = Users.objects.filter(role='patient').count()
+    return render(request, 'home.html', {
+        'pending_access_requests_count': pending_access_requests_count,
+        'total_approved_users': total_approved_users,
+        'total_clinicians': total_clinicians,
+        'total_patients': total_patients,
+    })
 
 def request_access_view(request):
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        affiliation = request.POST.get('affiliation')
+        message = request.POST.get('message')
+
+        User = get_user_model()
+        if User.objects.filter(email=email).exists() or ClinicianAccessRequest.objects.filter(email=email, status='pending').exists():
+            return render(request, 'users/request-access.html', {
+                'error': 'A user or pending request with this email already exists. Please use a different email.'
+            })
+
+        password_hash = make_password(password)
+        ClinicianAccessRequest.objects.create(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            affiliation=affiliation,
+            reason=message,
+            status='pending',
+            password_hash=password_hash
+        )
+        return render(request, 'users/request-access.html', {'success': True})
     return render(request, 'users/request-access.html')
 
 def about_view(request):
@@ -498,9 +546,8 @@ def contact_view(request):
 @login_required
 @user_passes_test(is_admin)
 def admin_panel(request):
-    # TODO: Replace with your actual queries
-    all_access_requests = []  # Query for pending access requests
-    all_users = []            # Query for all users
+    all_access_requests = ClinicianAccessRequest.objects.filter(status='pending')
+    all_users = Users.objects.all()
     return render(request, 'admin/admin_panel.html', {
         'all_access_requests': all_access_requests,
         'all_users': all_users,
@@ -509,7 +556,57 @@ def admin_panel(request):
 @login_required
 @user_passes_test(lambda u: u.is_superuser or u.is_staff or u.role == 'clinician_approved')
 def batch_prediction(request):
-    return render(request, 'admin/batch_prediction.html', {})
+    context = {}
+    if request.method == 'POST' and request.FILES.get('csv_file'):
+        csv_file = request.FILES['csv_file']
+        try:
+            df = pd.read_csv(csv_file)
+        except Exception as e:
+            context['error'] = f"Error reading CSV: {e}"
+            return render(request, 'admin/batch_prediction.html', context)
+
+        # Load model files
+        model_dir = os.path.join(settings.BASE_DIR, 'model_files', 'batch_models')
+        imputer = joblib.load(os.path.join(model_dir, 'biggestModel_rf (1).pkl'))
+        scaler = joblib.load(os.path.join(model_dir, 'biggestModelscaler.pkl'))
+        model = joblib.load(os.path.join(model_dir, 'MRMR_COX_FULL_MODEL_+QRISKSociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors_oneDrop_qrisk.pkl'))
+
+        # Ensure all required columns are present
+        required_features = model.feature_names_in_ if hasattr(model, 'feature_names_in_') else df.columns
+        missing_cols = [col for col in required_features if col not in df.columns]
+        for col in missing_cols:
+            df[col] = 0  # Default for missing one-hot/numerical columns
+        df = df[required_features]  # Reorder columns
+
+        # Impute, scale, predict
+        X_imputed = imputer.transform(df)
+        X_scaled = scaler.transform(X_imputed)
+        predictions = model.predict_proba(X_scaled)[:, 1] if hasattr(model, 'predict_proba') else model.predict(X_scaled)
+
+        # Prepare results for display
+        df['Predicted Risk'] = predictions
+        # Add risk category
+        def risk_category(score):
+            if score < 0.05:
+                return 'Very Low'
+            elif score < 0.10:
+                return 'Low'
+            elif score < 0.20:
+                return 'Moderate'
+            elif score < 0.30:
+                return 'High'
+            else:
+                return 'Very High'
+        df['Risk Category'] = df['Predicted Risk'].apply(risk_category)
+        if 'CVD_Risk_Prediction' in df.columns:
+            df = df.drop(columns=['CVD_Risk_Prediction'])
+        context['show_results'] = True
+        context['columns'] = list(df.columns)
+        context['paginated_data'] = df.to_dict(orient='records')
+        context['rows_per_page'] = 10
+        context['page_obj'] = None  # Pagination can be added if needed
+        request.session['batch_results'] = df.to_json(orient='records')  # For download
+    return render(request, 'admin/batch_prediction.html', context)
 
 def download_data_entry_template(request):
     file_path = os.path.join(settings.BASE_DIR, 'static', 'downloads', 'data_entry_template.csv')
@@ -573,3 +670,154 @@ def patient_risk_panel(request):
         'intermediate_risk_count': intermediate_risk_count,
         'low_risk_count': low_risk_count,
     })
+
+@require_POST
+@login_required
+@user_passes_test(is_admin)
+def approve_request(request, request_id):
+    access_request = get_object_or_404(ClinicianAccessRequest, id=request_id, status='pending')
+    User = get_user_model()
+    user = User.objects.create(
+        email=access_request.email,
+        password=access_request.password_hash,  # Already hashed
+        first_name=access_request.first_name,
+        last_name=access_request.last_name,
+        role='clinician_approved',
+        is_superuser=False,
+        is_staff=False
+    )
+    Clinicians.objects.create(user=user, specialty=access_request.affiliation)
+    access_request.status = 'approved'
+    access_request.save()
+    return redirect('admin_panel')
+
+@require_POST
+@login_required
+@user_passes_test(is_admin)
+def reject_request(request, request_id):
+    access_request = get_object_or_404(ClinicianAccessRequest, id=request_id, status='pending')
+    access_request.status = 'rejected'
+    access_request.save()
+    return redirect('admin_panel')
+
+@login_required
+def download_all_data(request):
+    batch_results_json = request.session.get('batch_results')
+    if not batch_results_json:
+        return HttpResponse("No batch results found.", status=404)
+    df = pd.read_json(batch_results_json)
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="batch_results.csv"'
+    df.to_csv(response, index=False)
+    return response
+
+@login_required
+def download_filtered_data(request):
+    batch_results_json = request.session.get('batch_results')
+    if not batch_results_json:
+        return HttpResponse("No batch results found.", status=404)
+    df = pd.read_json(batch_results_json)
+    indices = request.GET.get('indices')
+    limit = request.GET.get('limit')
+    if indices:
+        try:
+            idx_list = [int(i) for i in indices.split(',') if i.strip().isdigit()]
+            df = df.iloc[idx_list]
+        except Exception:
+            return HttpResponse("Invalid indices.", status=400)
+    elif limit:
+        try:
+            limit = int(limit)
+            df = df.head(limit)
+        except Exception:
+            return HttpResponse("Invalid limit.", status=400)
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="filtered_batch_results.csv"'
+    df.to_csv(response, index=False)
+    return response
+
+@login_required
+def download_single_patient_data(request, row_index):
+    batch_results_json = request.session.get('batch_results')
+    if not batch_results_json:
+        return HttpResponse("No batch results found.", status=404)
+    df = pd.read_json(batch_results_json)
+    try:
+        row_index = int(row_index)
+        row = df.iloc[[row_index]]
+    except Exception:
+        return HttpResponse("Invalid row index.", status=400)
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="patient_{row_index}_result.csv"'
+    row.to_csv(response, index=False)
+    return response
+
+def download_patient_plots(request, row_index):
+    batch_results_json = request.session.get('batch_results')
+    if not batch_results_json:
+        return HttpResponse("No batch results found.", status=404)
+    df = pd.read_json(batch_results_json)
+
+    # Load the template DataFrame for columns (from your data entry template CSV)
+    sampleDFbiggestModelCols = pd.read_csv(
+        os.path.join(os.path.dirname(__file__), '../static/downloads/data_entry_template.csv')
+    )
+    # Drop the same columns as in generate_survshap_plots
+    drop_cols = [
+        'category_Sociodemographics_ts_Ethnic.background...Instance.0_3',
+        'category_Sociodemographics_ts_Ethnic.background...Instance.0_4',
+        'category_Family.history_ts_Illnesses.of.adopted.siblings...Instance.0_11',
+        'qrisk_Ethnic.background...Instance.0_2',
+        'qrisk_Ethnic.background...Instance.0_3',
+        'qrisk_Ethnic.background...Instance.0_4',
+        'Unnamed: 0'
+    ]
+    df_cols = sampleDFbiggestModelCols.drop(columns=drop_cols, errors='ignore').columns
+
+    # Load explainer to get the expected columns
+    explainer_path = os.path.join('model_files', 'explainers', 'ktexplainer100biggest.pkl')
+    explainer = joblib.load(explainer_path)
+    expected_cols = explainer.data.columns
+
+    # Load imputer and scaler
+    imputer = joblib.load(os.path.join('model_files', 'batch_models', 'biggestModel_rf (1).pkl'))
+    scaler = joblib.load(os.path.join('model_files', 'batch_models', 'biggestModelscaler.pkl'))
+
+    # Robustly extract and align the patient row to explainer's expected columns
+    patient_row_full = df.iloc[int(row_index)]
+    patient_row_aligned = patient_row_full.reindex(expected_cols, fill_value=0)
+    patient_row_df = pd.DataFrame([patient_row_aligned])
+
+    # Impute missing values
+    patient_row_imputed = imputer.transform(patient_row_df)
+    # Scale the imputed values
+    patient_row_scaled = scaler.transform(patient_row_imputed)
+    # Convert to 1D array
+    patient_row_array = patient_row_scaled.squeeze()
+
+    # Generate the plots
+    figs = generate_survshap_plots(
+        patient_row_array,
+        sampleDFbiggestModelCols,
+        explainer_path=explainer_path,
+        model_path=os.path.join('model_files', 'batch_models', 'MRMR_COX_FULL_MODEL_+QRISKSociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors_oneDrop_qrisk.pkl')
+    )
+
+    # Save plots to in-memory files
+    buf1 = io.BytesIO()
+    buf2 = io.BytesIO()
+    figs[0].savefig(buf1, format='png')
+    figs[1].savefig(buf2, format='png')
+    buf1.seek(0)
+    buf2.seek(0)
+
+    # Zip the two images for download
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w') as zf:
+        zf.writestr('risk_plot.png', buf1.getvalue())
+        zf.writestr('shap_plot.png', buf2.getvalue())
+    zip_buffer.seek(0)
+
+    response = HttpResponse(zip_buffer, content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename=patient_{row_index}_plots.zip'
+    return response

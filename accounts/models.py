@@ -62,6 +62,7 @@ class Patients(models.Model):
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female'), ('Other', 'Other')], null = True, blank = True)
     created_at = models.DateTimeField(auto_now_add=True)
+    clinician = models.ForeignKey('Clinicians', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         db_table = 'Patients'
@@ -227,4 +228,18 @@ class batch_CVD_Risk_Output(models.Model):
     class Meta:
         db_table = 'batch_CVD_Risk_Output'
         verbose_name_plural = 'Batch CVD Risk Output'
+
+
+class ClinicianAccessRequest(models.Model):
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    email = models.EmailField(unique=True)
+    affiliation = models.CharField(max_length=255)
+    reason = models.TextField()
+    date_requested = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')], default='pending')
+    password_hash = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} ({self.email}) - {self.status}";
 

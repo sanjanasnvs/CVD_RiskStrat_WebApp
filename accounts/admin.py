@@ -14,6 +14,7 @@ from .models import (
     batch_CVD_Risk_Model_Features,
     batch_CVD_Risk_Risk,
     batch_CVD_Risk_Output,
+    ClinicianAccessRequest,
 )
 
 admin.site.register(Patients)
@@ -30,4 +31,5 @@ admin.site.register(batch_CVD_Risk_Features)
 admin.site.register(batch_CVD_Risk_Model_Features)
 admin.site.register(batch_CVD_Risk_Risk)
 admin.site.register(batch_CVD_Risk_Output)
+admin.site.register(ClinicianAccessRequest)
 

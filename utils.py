@@ -1,6 +1,11 @@
+import matplotlib
+matplotlib.use('Agg')
 import pandas as pd
 import numpy as np
 import re
+import matplotlib.pyplot as plt
+import joblib
+from survshap import PredictSurvSHAP
 
 def calculate_features_from_responses(response_dict,
                                       ts_mapping_file="Questionnaire_data/TS_mapping_with_questions_v1.xlsx",
@@ -153,4 +158,88 @@ def should_display_question(question, saved_responses):
             return False
 
     return True  # No unmet dependencies
+
+
+def generate_survshap_plots(
+    observation: np.ndarray,
+    sampleDFsocioCols: pd.DataFrame,
+    explainer_path: str,
+    model_path: str,
+    timestamps: list = None,
+    B: int = 1,
+    max_shap_vars: int = 10,
+    n_vars_plot: int = 10
+):
+    explainer = joblib.load(explainer_path)
+    model     = joblib.load(model_path)
+    if hasattr(explainer, 'y') and isinstance(explainer.y, pd.DataFrame):
+        explainer.y = explainer.y.to_records(index=False)
+
+    # Always use explainer.data.columns for alignment
+    df_cols = explainer.data.columns
+    df      = pd.DataFrame([observation], columns=df_cols)
+
+    df = df.rename(columns={'Age.at.recruitment': 'clinicalrisk_Age.at.recruitment'})
+
+    if timestamps is None:
+        timestamps = list(range(16))
+    survshap = PredictSurvSHAP(
+        calculation_method="sampling",
+        B=B,
+        max_shap_value_inputs=max_shap_vars
+    )
+    survshap.fit(
+        explainer=explainer,
+        new_observation=df,
+        timestamps=timestamps
+    )
+    shap_result = survshap.result
+
+    def _plot(fig_size=(8,5)):
+        times = np.array(timestamps)
+
+        # (a) cohort average risk
+        model = explainer.model
+        surv_cohort = model.predict_survival_function(
+            explainer.data, return_array=True
+        )[:, :len(times)].mean(axis=0)
+        risk_cohort = 1 - surv_cohort
+        df.columns = explainer.data.columns
+        # (b) individual risk
+        surv_ind = model.predict_survival_function(
+            df, return_array=True
+        )[0, :len(times)]
+        risk_ind = 1 - surv_ind
+
+        fig1, ax1 = plt.subplots(figsize=fig_size)
+        ax1.plot(times, risk_cohort, 'k--', lw=2, label='Cohort avg. risk')
+        ax1.plot(times, risk_ind,    'r-',  lw=2, label='Individual risk')
+        ax1.set(
+            xlabel='Timepoint',
+            ylabel='Risk (1 – Survival)',
+            title='Cohort vs. Individual Risk over Time'
+        )
+        ax1.legend()
+        fig1.tight_layout()
+
+        time_cols = [f't = {t}' for t in times]
+        top_shap  = shap_result.iloc[:n_vars_plot].set_index('variable_name')
+        shap_df   = top_shap[time_cols].T
+        shap_df.index = shap_df.index.str.replace('t = ', '').astype(int)
+
+        fig2, ax2 = plt.subplots(figsize=(15,6))
+        for var in shap_df.columns:
+            ax2.plot(shap_df.index, shap_df[var], alpha=0.7, label=var)
+        ax2.set(
+            xlabel='Timepoint',
+            ylabel='SHAP value',
+            title=f'Top {n_vars_plot} Variables over {len(times)} Time‐steps'
+        )
+        ax2.legend(loc='center left', bbox_to_anchor=(1.0, 0.5))
+        fig2.tight_layout()
+
+        return fig1, fig2
+
+    # --- 5) Generate and return both figures ---
+    return _plot()
 

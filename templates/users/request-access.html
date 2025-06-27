@@ -30,6 +30,12 @@
         <div class="alert alert-info text-center mb-3">
           For <strong>clinicians only</strong>. Patients should use the <a href="{% url 'signup' %}">Create Account</a> page.
         </div>
+        {% if error %}
+          <div class="alert alert-danger mt-3">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+          <div class="alert alert-success mt-3">Your access request has been submitted successfully!</div>
+        {% else %}
         <form method="post" class="php-email-form" action="{% url 'request_access' %}" onsubmit="return validateForm()" novalidate>
           {% csrf_token %}
           <div class="row">
@@ -109,6 +115,7 @@
             <button type="submit" class="btn btn-primary">Submit Request</button>
           </div>
         </form>
+        {% endif %}
       </div>
     </div>
   </div>

@@ -29,9 +29,11 @@
         <div class="topbar d-flex align-items-center" style="background: #1977cc; color: #fff; font-size: 1rem;">
           <div class="container d-flex justify-content-center justify-content-md-between">
             <div class="contact-info d-flex align-items-center">
-              <span style="color: #fff; font-weight: 600; font-size: 1.05rem;">
-                <a href="https://www.kcl.ac.uk/" target="_blank" rel="noopener" style="color: #fff; font-weight: 700; text-decoration: none;">King's College London</a>
+              <span style="color: #fff; font-weight: 600; font-size: 1.05rem; display: flex; align-items: center;">
+                <img src="{% static 'img/kcl_logo.png' %}" alt="KCL Logo" style="height: 32px; margin-right: 6px; background: #fff; border-radius: 4px; padding: 2px;">
+                <a href="https://www.kcl.ac.uk/" target="_blank" rel="noopener" style="color: #fff; font-weight: 700; text-decoration: none; margin-right: 8px;">King's College London</a>
                 <span style="margin: 0 8px;">|</span>
+                <img src="{% static 'img/bhf_logo.png' %}" alt="BHF Logo" style="height: 32px; margin-right: 6px; background: #fff; border-radius: 4px; padding: 2px;">
                 <a href="https://www.bhf.org.uk/" target="_blank" rel="noopener" style="color: #fff; font-weight: 700; text-decoration: none;">British Heart Foundation</a>
               </span>
             </div>
@@ -48,7 +50,11 @@
                 <nav id="navbar" class="navbar order-last order-lg-0 me-auto w-100">
                     <ul class="navmenu d-flex align-items-center justify-content-end w-100" style="gap: 1.5rem; list-style: none; margin-bottom: 0; padding-left: 0; background: none;">
                         <li>
-                            <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
+                            {% if user.is_authenticated and user.role == 'clinician_approved' %}
+                                <a href="{% url 'clinician_dashboard' %}" class="{% if request.resolver_match.url_name == 'clinician_dashboard' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
+                            {% else %}
+                                <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
+                            {% endif %}
                         </li>
                         {% if user.is_authenticated and user.is_superuser %}
                             <li>
