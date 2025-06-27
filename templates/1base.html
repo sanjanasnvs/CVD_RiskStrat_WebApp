@@ -7,15 +7,15 @@
     <title>{% block title %}CVD Risk Prediction{% endblock %}</title>
 
     <!-- Google Fonts -->
-    <link 
-href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" 
-rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Raleway:300,300i,400,400i,500,500i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
 
     <!-- Vendor CSS Files -->
     <link href="{% static 'assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
     <link href="{% static 'assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+    <!-- <link href="{% static 'assets/vendor/boxicons/css/boxicons.min.css' %}" rel="stylesheet"> -->
     <link href="{% static 'assets/vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
     <link href="{% static 'assets/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+    <!-- <link href="{% static 'assets/vendor/remixicon/remixicon.css' %}" rel="stylesheet"> -->
     <link href="{% static 'assets/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
     <link href="{% static 'assets/vendor/aos/aos.css' %}" rel="stylesheet">
 
@@ -49,86 +49,47 @@ rel="stylesheet">
             <div class="container d-flex align-items-center">
                 <nav id="navbar" class="navbar order-last order-lg-0 me-auto w-100">
                     <ul class="navmenu d-flex align-items-center justify-content-end w-100" style="gap: 1.5rem; list-style: none; margin-bottom: 0; padding-left: 0; background: none;">
-                        
-                        {% if user.is_authenticated %}
-                            {% if user.is_superuser %}
-                                <!-- Admin Navigation -->
-                                <li>
-                                    <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" 
-style="border-radius: 25px;">Home</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'admin_panel' %}" class="{% if request.resolver_match.url_name == 'admin_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Admin Panel</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'patient_risk_panel' %}" class="{% if request.resolver_match.url_name == 'patient_risk_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Patient Risk Panel</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'batch_prediction' %}" class="{% if request.resolver_match.url_name == 'batch_prediction' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Batch CVD Risk Prediction</a>
-                                </li>
-                                
-                            {% elif user.is_staff %}
-                                <!-- Staff Navigation -->
-                                <li>
-                                    <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'admin_panel' %}" class="{% if request.resolver_match.url_name == 'admin_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Admin Panel</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'patient_risk_panel' %}" class="{% if request.resolver_match.url_name == 'patient_risk_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Patient Risk Panel</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'batch_prediction' %}" class="{% if request.resolver_match.url_name == 'batch_prediction' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Batch CVD Risk Prediction</a>
-                                </li>
-                                
-                            {% elif user.role == 'clinician_approved' %}
-                                <!-- Clinician Navigation -->
-                                <li>
-                                    <a href="{% url 'clinician_dashboard' %}" class="{% if request.resolver_match.url_name == 'clinician_dashboard' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'patient_risk_panel' %}" class="{% if request.resolver_match.url_name == 'patient_risk_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Patient Risk Panel</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'batch_prediction' %}" class="{% if request.resolver_match.url_name == 'batch_prediction' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Batch CVD Risk Prediction</a>
-                                </li>
-                                
-                            {% elif user.role == 'patient' %}
-                                <!-- Patient Navigation -->
-                                <li>
-                                    <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'learn_cvd' %}" class="{% if request.resolver_match.url_name == 'learn_cvd' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Learn About CVD</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'patient_dashboard' %}" class="{% if request.resolver_match.url_name == 'patient_dashboard' or request.resolver_match.url_name == 'start_assessment' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Check My Risk</a>
-                                </li>
-                                
+                        <li>
+                            {% if user.is_authenticated and user.role == 'clinician_approved' %}
+                                <a href="{% url 'clinician_dashboard' %}" class="{% if request.resolver_match.url_name == 'clinician_dashboard' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
                             {% else %}
-                                <!-- Default authenticated user navigation -->
-                                <li>
-                                    <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
-                                </li>
-                            {% endif %}
-                            
-                        {% else %}
-                            <!-- Public/Unauthenticated Navigation -->
-                            <li>
                                 <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
+                            {% endif %}
+                        </li>
+                        {% if user.is_authenticated and user.is_superuser %}
+                            <li>
+                                <a href="{% url 'admin_panel' %}" class="{% if request.resolver_match.url_name == 'admin_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Admin Panel</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'patient_risk_panel' %}" class="{% if request.resolver_match.url_name == 'patient_risk_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Patient Risk Panel</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'batch_prediction' %}" class="{% if request.resolver_match.url_name == 'batch_prediction' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Batch CVD Risk Prediction</a>
+                            </li>
+                        {% elif user.is_authenticated and user.is_staff %}
+                            <li>
+                                <a href="{% url 'admin_panel' %}" class="{% if request.resolver_match.url_name == 'admin_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Admin Panel</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'patient_risk_panel' %}" class="{% if request.resolver_match.url_name == 'patient_risk_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Patient Risk Panel</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'batch_prediction' %}" class="{% if request.resolver_match.url_name == 'batch_prediction' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Batch CVD Risk Prediction</a>
+                            </li>
+                        {% elif user.is_authenticated and user.role == 'clinician_approved' %}
+                            <li>
+                                <a href="{% url 'patient_risk_panel' %}" class="{% if request.resolver_match.url_name == 'patient_risk_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Patient Risk Panel</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'batch_prediction' %}" class="{% if request.resolver_match.url_name == 'batch_prediction' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Batch CVD Risk Prediction</a>
                             </li>
                         {% endif %}
-                        
-                        <!-- Common Navigation Items for All Users -->
                         <li>
                             <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">About</a>
                         </li>
                         <li>
                             <a href="{% url 'contact' %}" class="{% if request.resolver_match.url_name == 'contact' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Contact</a>
                         </li>
-                        
-                        <!-- Authentication-specific Links -->
                         {% if user.is_authenticated %}
                             <li>
                                 <a href="{% url 'logout' %}" class="{% if request.resolver_match.url_name == 'logout' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Logout</a>
@@ -205,7 +166,7 @@ style="border-radius: 25px;">Home</a>
                     <span class="slider round"></span>
                 </label>
             </div>
-            
+            <!-- New Feature: Line Height and Letter Spacing -->
             <div class="accessibility-feature-card" id="line-spacing-feature-card">
                 <i class="bi bi-text-height me-2"></i>
                 <span>Line Height</span>
@@ -215,7 +176,6 @@ style="border-radius: 25px;">Home</a>
                     <button class="btn btn-sm btn-outline-secondary ms-2" id="increase-line-height-btn"><i class="bi bi-plus"></i></button>
                 </div>
             </div>
-            
             <div class="accessibility-feature-card" id="letter-spacing-feature-card">
                 <i class="bi bi-text-width me-2"></i>
                 <span>Letter Spacing</span>
@@ -225,6 +185,7 @@ style="border-radius: 25px;">Home</a>
                     <button class="btn btn-sm btn-outline-secondary ms-2" id="increase-letter-spacing-btn"><i class="bi bi-plus"></i></button>
                 </div>
             </div>
+            <!-- Other features will be added here -->
         </div>
     </div>
 
@@ -349,4 +310,4 @@ style="border-radius: 25px;">Home</a>
         }
     </script>
 </body>
-</html>
+</html> 

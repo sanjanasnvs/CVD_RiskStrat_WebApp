@@ -84,7 +84,7 @@ def admin_dashboard(request):
 def role_based_dashboard_redirect(request):
     if request.user.role == 'patient':
         return redirect('patient_dashboard')
-    elif request.user.role == 'clinician':
+    elif request.user.role == 'clinician_approved':
         return redirect('clinician_dashboard')
     else:
         return redirect('/admin/')

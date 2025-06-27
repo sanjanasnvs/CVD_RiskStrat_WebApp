@@ -1,0 +1,476 @@
+{% extends 'base.html' %}
+
+{% block content %}
+{% if user.is_authenticated and user.is_superuser %}
+    <!-- Modern Admin Dashboard -->
+    <div class="min-vh-100 bg-light">
+        <div class="container py-5">
+            <!-- Header -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h1 class="display-5 fw-bold text-dark mb-2">Welcome back, Admin</h1>
+                            <p class="text-muted fs-5">Manage your platform and monitor system activity</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-success fs-6 px-3 py-2">System Online</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="text-muted mb-1 fw-medium">Pending Requests</p>
+                                    <h2 class="display-6 fw-bold text-warning mb-0">{{ pending_access_requests_count }}</h2>
+                                </div>
+                                <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                                    <i class="bi bi-clock-history text-warning fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="text-muted mb-1 fw-medium">Approved Users</p>
+                                    <h2 class="display-6 fw-bold text-success mb-0">{{ total_approved_users }}</h2>
+                                </div>
+                                <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                                    <i class="bi bi-people-fill text-success fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="text-muted mb-1 fw-medium">User Distribution</p>
+                                    <div class="d-flex gap-3 mt-2">
+                                        <div>
+                                            <span class="badge bg-primary">{{ total_clinicians }} Clinicians</span>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-info">{{ total_patients }} Patients</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                                    <i class="bi bi-pie-chart-fill text-primary fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Cards -->
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <h3 class="card-title fw-bold mb-4">Pending Tasks</h3>
+                            {% if pending_access_requests_count > 0 %}
+                                <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+                                    <div class="bg-warning bg-opacity-20 rounded-circle p-2 me-3">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="alert-heading mb-1">Action Required</h6>
+                                        <p class="mb-0">You have <strong>{{ pending_access_requests_count }}</strong> pending access request{{ pending_access_requests_count|pluralize }} awaiting 
+review.</p>
+                                    </div>
+                                </div>
+                                <a href="{% url 'admin_panel' %}" class="btn btn-warning btn-lg px-4 py-3 fw-medium">
+                                    <i class="bi bi-eye me-2"></i>Review Pending Requests
+                                </a>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <div class="bg-success bg-opacity-10 rounded-circle p-4 d-inline-flex mb-3">
+                                        <i class="bi bi-check-circle-fill text-success fs-1"></i>
+                                    </div>
+                                    <h5 class="text-success mb-2">All caught up!</h5>
+                                    <p class="text-muted mb-4">No pending tasks at the moment.</p>
+                                    <a href="{% url 'admin_panel' %}" class="btn btn-primary btn-lg px-4 py-3 fw-medium">
+                                        <i class="bi bi-gear me-2"></i>Go to Admin Panel
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <h5 class="card-title fw-bold mb-4">Quick Actions</h5>
+                            <div class="d-grid gap-3">
+                                <a href="{% url 'admin_panel' %}" class="btn btn-outline-primary btn-lg text-start">
+                                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                                </a>
+                                <a href="#" class="btn btn-outline-secondary btn-lg text-start">
+                                    <i class="bi bi-people me-2"></i>User Management
+                                </a>
+                                <a href="#" class="btn btn-outline-info btn-lg text-start">
+                                    <i class="bi bi-bar-chart me-2"></i>Analytics
+                                </a>
+                                <a href="#" class="btn btn-outline-dark btn-lg text-start">
+                                    <i class="bi bi-gear me-2"></i>Settings
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% elif user.is_authenticated and user.is_staff %}
+    <!-- Staff Dashboard (Same as superuser for now) -->
+    <div class="min-vh-100 bg-light">
+        <div class="container py-5">
+            <!-- Header -->
+            <div class="row mb-5">
+                <div class="col-12">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <h1 class="display-5 fw-bold text-dark mb-2">Welcome back, Admin</h1>
+                            <p class="text-muted fs-5">Manage your platform and monitor system activity</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <span class="badge bg-success fs-6 px-3 py-2">System Online</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="text-muted mb-1 fw-medium">Pending Requests</p>
+                                    <h2 class="display-6 fw-bold text-warning mb-0">{{ pending_access_requests_count }}</h2>
+                                </div>
+                                <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                                    <i class="bi bi-clock-history text-warning fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="text-muted mb-1 fw-medium">Approved Users</p>
+                                    <h2 class="display-6 fw-bold text-success mb-0">{{ total_approved_users }}</h2>
+                                </div>
+                                <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                                    <i class="bi bi-people-fill text-success fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <p class="text-muted mb-1 fw-medium">User Distribution</p>
+                                    <div class="d-flex gap-3 mt-2">
+                                        <div>
+                                            <span class="badge bg-primary">{{ total_clinicians }} Clinicians</span>
+                                        </div>
+                                        <div>
+                                            <span class="badge bg-info">{{ total_patients }} Patients</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                                    <i class="bi bi-pie-chart-fill text-primary fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Cards -->
+            <div class="row g-4">
+                <div class="col-lg-8">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <h3 class="card-title fw-bold mb-4">Pending Tasks</h3>
+                            {% if pending_access_requests_count > 0 %}
+                                <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+                                    <div class="bg-warning bg-opacity-20 rounded-circle p-2 me-3">
+                                        <i class="bi bi-exclamation-triangle-fill text-warning"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="alert-heading mb-1">Action Required</h6>
+                                        <p class="mb-0">You have <strong>{{ pending_access_requests_count }}</strong> pending access request{{ pending_access_requests_count|pluralize }} awaiting 
+review.</p>
+                                    </div>
+                                </div>
+                                <a href="{% url 'admin_panel' %}" class="btn btn-warning btn-lg px-4 py-3 fw-medium">
+                                    <i class="bi bi-eye me-2"></i>Review Pending Requests
+                                </a>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <div class="bg-success bg-opacity-10 rounded-circle p-4 d-inline-flex mb-3">
+                                        <i class="bi bi-check-circle-fill text-success fs-1"></i>
+                                    </div>
+                                    <h5 class="text-success mb-2">All caught up!</h5>
+                                    <p class="text-muted mb-4">No pending tasks at the moment.</p>
+                                    <a href="{% url 'admin_panel' %}" class="btn btn-primary btn-lg px-4 py-3 fw-medium">
+                                        <i class="bi bi-gear me-2"></i>Go to Admin Panel
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card border-0 shadow-sm h-100">
+                        <div class="card-body p-4">
+                            <h5 class="card-title fw-bold mb-4">Quick Actions</h5>
+                            <div class="d-grid gap-3">
+                                <a href="{% url 'admin_panel' %}" class="btn btn-outline-primary btn-lg text-start">
+                                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                                </a>
+                                <a href="#" class="btn btn-outline-secondary btn-lg text-start">
+                                    <i class="bi bi-people me-2"></i>User Management
+                                </a>
+                                <a href="#" class="btn btn-outline-info btn-lg text-start">
+                                    <i class="bi bi-bar-chart me-2"></i>Analytics
+                                </a>
+                                <a href="#" class="btn btn-outline-dark btn-lg text-start">
+                                    <i class="bi bi-gear me-2"></i>Settings
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% else %}
+    <!-- Modern Public Landing Page -->
+    <div class="min-vh-100">
+        <!-- Hero Section -->
+        <section class="hero-section bg-gradient position-relative overflow-hidden">
+            <div class="hero-bg position-absolute top-0 start-0 w-100 h-100 opacity-10"></div>
+            <div class="container position-relative">
+                <div class="row min-vh-100 align-items-center py-5">
+                    <div class="col-lg-6">
+                        <div class="hero-content">
+                            <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill mb-4">
+                                <i class="bi bi-heart-pulse me-2"></i>Advanced CVD Risk Assessment
+                            </div>
+                            <h1 class="display-3 fw-bold text-dark mb-4 lh-1">
+                                Predict Cardiovascular Risk with 
+                                <span class="text-primary">AI Precision</span>
+                            </h1>
+                            <p class="lead text-muted mb-5 fs-4">
+                                Empowering patients and clinicians with state-of-the-art machine learning algorithms for accurate cardiovascular disease risk assessment and prevention.
+                            </p>
+                            <div class="d-flex flex-column flex-sm-row gap-3 mb-5">
+                                <a href="{% url 'signup' %}" class="btn btn-success btn-lg px-4 py-3 fw-medium shadow-sm">
+                                    <i class="bi bi-person-plus me-2"></i>Create Patient Account
+                                </a>
+                                <a href="{% url 'request_access' %}" class="btn btn-primary btn-lg px-4 py-3 fw-medium shadow-sm">
+                                    <i class="bi bi-shield-check me-2"></i>Clinician Access Request
+                                </a>
+                            </div>
+                            <div class="d-flex align-items-center gap-4 text-muted">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-shield-fill-check text-success me-2"></i>
+                                    <span>HIPAA Compliant</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-cpu text-primary me-2"></i>
+                                    <span>AI-Powered</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-graph-up text-info me-2"></i>
+                                    <span>Clinically Validated</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="hero-image text-center">
+                            <div class="position-relative d-inline-block">
+                                <div class="bg-primary bg-opacity-10 rounded-circle p-5 shadow-lg">
+                                    <i class="bi bi-heart-pulse-fill text-primary" style="font-size: 8rem;"></i>
+                                </div>
+                                <div class="position-absolute top-0 start-0 w-100 h-100 rounded-circle border border-primary border-opacity-25 animate-pulse"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-5 bg-light">
+            <div class="container py-5">
+                <div class="row mb-5">
+                    <div class="col-lg-6">
+                        <div class="section-header">
+                            <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill mb-3">
+                                Why Choose Our Platform
+                            </div>
+                            <h2 class="display-5 fw-bold text-dark mb-4">
+                                Advanced Technology Meets Healthcare Excellence
+                            </h2>
+                            <p class="lead text-muted mb-4">
+                                Our platform combines cutting-edge machine learning with clinical expertise to deliver accurate, actionable cardiovascular risk assessments for both individual 
+patients and healthcare professionals.
+                            </p>
+                            <a href="{% url 'about' %}" class="btn btn-outline-primary btn-lg px-4 py-3 fw-medium">
+                                Learn More About Our Technology
+                                <i class="bi bi-arrow-right ms-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-4">
+                        <div class="feature-card card border-0 shadow-sm h-100 hover-lift">
+                            <div class="card-body p-4 text-center">
+                                <div class="feature-icon bg-primary bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4">
+                                    <i class="bi bi-bullseye text-primary fs-1"></i>
+                                </div>
+                                <h4 class="fw-bold mb-3">Accurate Predictions</h4>
+                                <p class="text-muted mb-0">
+                                    Leverage advanced machine learning algorithms trained on comprehensive datasets to deliver precise cardiovascular disease risk assessments with clinical-grade 
+accuracy.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="feature-card card border-0 shadow-sm h-100 hover-lift">
+                            <div class="card-body p-4 text-center">
+                                <div class="feature-icon bg-success bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4">
+                                    <i class="bi bi-layers text-success fs-1"></i>
+                                </div>
+                                <h4 class="fw-bold mb-3">Batch & Personal Processing</h4>
+                                <p class="text-muted mb-0">
+                                    Process multiple patient records efficiently for clinical workflows or get personalized risk insights for individual health management and prevention 
+strategies.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="feature-card card border-0 shadow-sm h-100 hover-lift">
+                            <div class="card-body p-4 text-center">
+                                <div class="feature-icon bg-info bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4">
+                                    <i class="bi bi-shield-lock text-info fs-1"></i>
+                                </div>
+                                <h4 class="fw-bold mb-3">Secure & Compliant</h4>
+                                <p class="text-muted mb-0">
+                                    HIPAA-compliant infrastructure with enterprise-grade security measures ensuring complete patient data protection and regulatory compliance for healthcare 
+organizations.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section bg-primary text-white py-5">
+            <div class="container py-5">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="cta-content">
+                            <h2 class="display-5 fw-bold mb-4">Ready to Transform Cardiovascular Care?</h2>
+                            <p class="lead mb-0 opacity-90">
+                                Join thousands of patients and healthcare professionals who trust our platform for accurate cardiovascular risk assessment. Take the first step towards better 
+heart health today.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                        <div class="d-flex flex-column gap-3">
+                            <a href="{% url 'signup' %}" class="btn btn-light btn-lg px-4 py-3 fw-medium">
+                                <i class="bi bi-person-plus me-2"></i>Get Started as Patient
+                            </a>
+                            <a href="{% url 'request_access' %}" class="btn btn-outline-light btn-lg px-4 py-3 fw-medium">
+                                <i class="bi bi-briefcase me-2"></i>Request Clinician Access
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Custom Styles -->
+    <style>
+        .hero-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .hover-lift:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+        }
+        
+        .animate-pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.25; }
+            50% { opacity: 0.1; }
+        }
+        
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        
+        .feature-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1);
+        }
+        
+        .btn {
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+{% endif %}
+{% endblock %}
