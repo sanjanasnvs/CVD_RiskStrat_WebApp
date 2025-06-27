@@ -414,8 +414,10 @@ def patient_learn(request):
 def clinician_dashboard(request):
     if request.user.role != 'clinician_approved':
         return redirect('home')
-
-    clinician = Clinicians.objects.get(user=request.user)
+    try:
+        clinician = Clinicians.objects.get(user=request.user)
+    except Clinicians.DoesNotExist:
+        return redirect('home')
     assignments = CVD_risk_Clinician_Patient.objects.filter(clinician=clinician).select_related('patient')
 
     patient_data = []
