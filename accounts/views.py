@@ -370,44 +370,260 @@ def get_next_category(category_list, current):
         return None
 
 
+MODEL_METRICS = {
+    "MRMR_COX_Sociodemographics": {
+        "accuracy": "16.26%",
+        "auroc": "0.6473",
+        "precision": "16.26%",
+        "recall": "100.00%",
+        "c_index": "0.64"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history": {
+        "accuracy": "86.77%",
+        "auroc": "0.7785",
+        "precision": "91.49%",
+        "recall": "24.94%",
+        "c_index": "0.78"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors": {
+        "accuracy": "86.85%",
+        "auroc": "0.7920",
+        "precision": "96.19%",
+        "recall": "17.93%",
+        "c_index": "0.79"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors": {
+        "accuracy": "86.82%",
+        "auroc": "0.7917",
+        "precision": "96.12%",
+        "recall": "18.51%",
+        "c_index": "0.79"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history": {
+        "accuracy": "86.56%",
+        "auroc": "0.7862",
+        "precision": "87.13%",
+        "recall": "26.86%",
+        "c_index": "0.79"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment": {
+        "accuracy": "86.59%",
+        "auroc": "0.7946",
+        "precision": "97.31%",
+        "recall": "12.39%",
+        "c_index": "0.00"
+    },
+    "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors": {
+        "accuracy": "86.59%",
+        "auroc": "0.7942",
+        "precision": "97.25%",
+        "recall": "12.90%",
+        "c_index": "0.00"
+    }
+}
+
+
+
+
 @login_required
 def patient_self_results(request):
     if request.user.role != 'patient':
         return redirect('home')
-    patient = get_object_or_404(Patient, user=request.user)
-    return render(request, 'patients/results.html', {'patient': patient})
+
+    patient = get_object_or_404(Patients, user=request.user)
+
+    # STEP 1: Find the latest submission ID used by this patient
+    latest_strat = Risk_Stratification.objects.filter(patient=patient).exclude(submission_id__isnull=True).order_by('-assessed_at').first()
+
+    if not latest_strat:
+        return render(request, 'patients/results.html', {
+            'patient': patient,
+            'model_results': [],
+            'all_models_inconclusive': True,
+            'all_categories_completed': False,
+            'assessment_date': None
+        })
+
+    latest_submission_id = latest_strat.submission_id
+    assessment_date = latest_strat.assessed_at
+
+    # STEP 2: Fetch only results for models evaluated in this session
+    strat_results = Risk_Stratification.objects.filter(
+        patient=patient,
+        submission_id=latest_submission_id
+    ).select_related('model').order_by('assessed_at')
+
+    model_results = []
+    all_models_inconclusive = True
+    #explainability_plots = {}
+
+    for strat in strat_results:
+        model_name = strat.model.model_name  # e.g., "MRMR_COX_Sociodemographics"
+        category_guess = model_name.replace("MRMR_COX_", "").replace("_", " ").strip().title()
+
+        if strat.recommendation in ['Low Risk', 'High Risk']:
+            all_models_inconclusive = False
+
+        # Define plot  path based on how the SHAP image is saved
+        plot_path = f"patient_plots/patient_{patient.patient_id}_explain_{model_name}.png"
+
+        # Add explainability plot to the dictionary (for use in template)
+        #explainability_plots[model_name] = plot_path
+
+        # Dynamically construct the expected plot path
+        relative_plot_path = f"patient_plots/patient_{patient.patient_id}_explain_{model_name}.png"
+        static_dir = settings.STATIC_ROOT
+        if static_dir is None:
+            # Use first STATICFILES_DIR in development
+            static_dir = settings.STATICFILES_DIRS[0]
+
+        absolute_plot_path = os.path.join(static_dir, relative_plot_path)
+
+        # Debugging:
+        print(f"🔍 Checking file at: {absolute_plot_path}")
+        if os.path.exists(absolute_plot_path):
+            plot_path = relative_plot_path
+        else:
+            print(f"❌ Plot missing for model: {model_name}")
+            plot_path = None
+
+        model_results.append({
+            'category': category_guess,
+            'prediction_score': round(strat.risk_score, 2),
+            'risk_category': strat.recommendation,
+            'plot_path': plot_path,
+            **MODEL_METRICS.get(model_name, {
+                "accuracy": "N/A",
+                "auroc": "N/A",
+                "precision": "N/A",
+                "recall": "N/A",
+                "c_index": "N/A"
+                })
+            })
+       
+    return render(request, 'patients/results.html', {
+        'patient': patient,
+        'model_results': model_results,
+        'all_models_inconclusive': all_models_inconclusive,
+        'all_categories_completed': len(model_results) == len(CATEGORY_ORDER),
+        'assessment_date': assessment_date,
+    })
+
+
 
 
 @login_required
 def clinician_patient_results(request, patient_id=None):
+    # Step 1: Determine the patient based on role
     if request.user.role == 'patient':
-        # Patients can only view their own results
-        patient = get_object_or_404(Patient, user=request.user)
+        patient = get_object_or_404(Patients, user=request.user)
     elif request.user.role == 'clinician_approved':
-        # Clinicians must access using patient_id
         if not patient_id:
-            return redirect('clinician_dashboard')  # or show an error
-        patient = get_object_or_404(Patient, id=patient_id)
+            return redirect('clinician_dashboard')
+        patient = get_object_or_404(Patients, id=patient_id)
     else:
-        return redirect('home')  # or raise permission denied
+        return redirect('home')
 
-    # You can now fetch the latest results for this patient
-    # Replace the below line with actual result fetching logic
-    context = {
+    # Step 2: Fetch only the completed models (not all 7)
+    results = []
+    try:
+        # Get all stratification results for this patient, ordered latest first
+        strat_results = (
+            Risk_Stratification.objects.filter(patient=patient)
+            .select_related("model")
+            .order_by("-assessed_at")
+        )
+
+        # Track the models already included
+        seen_model_names = set()
+
+        for strat in strat_results:
+            model = strat.model
+            model_name = model.model_name
+            if model_name in seen_model_names:
+                continue  # Avoid duplicates if multiple entries exist
+            seen_model_names.add(model_name)
+
+            # Derive category name from mapping
+            category = None
+            for k, v in MODEL_FILE_MAPPING.items():
+                if os.path.basename(v).replace(".pkl", "") == model_name:
+                    category = k
+                    break
+
+            if not category:
+                continue  # Skip if mapping fails
+
+            results.append({
+                'category': category,
+                'score': round(strat.risk_score, 2),
+                'risk': strat.recommendation,
+                'plot_path': f"/static/patient_plots/patient_{patient.id}_{model_name}.png",
+                **MODEL_METRICS.get(model_name, {
+                    "accuracy": "N/A",
+                    "auroc": "N/A",
+                    "precision": "N/A",
+                    "recall": "N/A"
+                    })
+                })
+
+    except Exception as e:
+        print(f"⚠️ Error processing results: {e}")
+
+    return render(request, 'patients/results.html', {
         'patient': patient,
-        # 'results': latest_results,
-    }
-    return render(request, 'patients/results.html', context)
+        'model_results': results
+    })
 
+
+
+@login_required
 @login_required
 def assessment_history(request):
     if request.user.role != 'patient':
         return redirect('home')
-    return render(request, 'patients/history.html')
+
+    # Get the patient object
+    patient = Patients.objects.get(user=request.user)
+
+    # Group assessments by submission_id and get the latest timestamp
+    assessment_groups = (
+        Risk_Stratification.objects
+        .filter(patient=patient)
+        .values('submission_id')
+        .annotate(assessed_at=Max('assessed_at'))
+        .order_by('-assessed_at')
+    )
+
+    return render(request, 'patients/history.html', {
+        'assessments': assessment_groups
+    })
+
 
 @login_required
-def patient_learn(request):
-    return render(request, 'learn.html')
+def view_results_by_submission(request, submission_id):
+    if request.user.role != 'patient':
+        return redirect('home')
+
+    patient = Patients.objects.get(user=request.user)
+
+    results = Risk_Stratification.objects.filter(
+        patient=patient,
+        submission_id=submission_id
+    ).select_related('model')
+
+    return render(request, 'patients/view_results.html', {
+        'results': results,
+        'submission_id': submission_id
+    })
+
+
+
+@login_required
+def learn_cvd(request):
+    return render(request, 'medilab/learn.html')
+
+
 
 
 @login_required
@@ -633,29 +849,23 @@ def download_feature_documentation(request):
 
 @login_required
 def patient_risk_panel(request):
-    # Allow clinicians and admin users
-    if not (request.user.role == 'clinician_approved' or request.user.is_superuser or request.user.is_staff):
+    if request.user.role != 'clinician_approved':
         return redirect('home')
 
-    assignments = []
-    if request.user.role == 'clinician_approved':
-        try:
-            clinician = Clinicians.objects.get(user=request.user)
-            assignments = CVD_risk_Clinician_Patient.objects.filter(clinician=clinician).select_related('patient')
-        except Clinicians.DoesNotExist:
-            assignments = []  # No patients assigned if no Clinicians object
-    else:
-        # For admin, show all patients
-        assignments = CVD_risk_Clinician_Patient.objects.all().select_related('patient')
+    clinician = Clinicians.objects.get(user=request.user)
+    assignments = CVD_risk_Clinician_Patient.objects.filter(clinician=clinician).select_related('patient')
 
     patient_data = []
     high_risk_patients = []
+    
     for assign in assignments:
         patient = assign.patient
         latest_risk = Risk_Stratification.objects.filter(patient=patient).order_by('-assessed_at').first()
+        
         is_high_risk = latest_risk and latest_risk.recommendation == 'High Risk'
+        
         patient_info = {
-            'patient_id': patient.patient_id,
+            'patient_id': patient.patient_id,  # Add this for URL routing
             'name': f"{patient.user.first_name} {patient.user.last_name}",
             'dob': patient.date_of_birth,
             'email': patient.user.email,
@@ -664,13 +874,17 @@ def patient_risk_panel(request):
             'assessed_at': latest_risk.assessed_at if latest_risk else None,
             'is_high_risk': is_high_risk,
         }
+        
         patient_data.append(patient_info)
         if is_high_risk:
             high_risk_patients.append(patient_info)
+
+    # Calculate statistics
     total_patients = len(patient_data)
     high_risk_count = len([p for p in patient_data if p.get('recommendation') == 'High Risk'])
     intermediate_risk_count = len([p for p in patient_data if p.get('recommendation') == 'Intermediate Risk'])
     low_risk_count = len([p for p in patient_data if p.get('recommendation') == 'Low Risk'])
+
     return render(request, 'clinicians/patient_risk_panel.html', {
         'patient_data': patient_data,
         'high_risk_patients': high_risk_patients,
@@ -698,7 +912,13 @@ def approve_request(request, request_id):
     Clinicians.objects.create(user=user, specialty=access_request.affiliation)
     access_request.status = 'approved'
     access_request.save()
-    return redirect('admin_panel')
+   return redirect('admin_panel')
+
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('login')
 
 @require_POST
 @login_required
