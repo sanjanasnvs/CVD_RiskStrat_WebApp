@@ -23,6 +23,8 @@ from django.contrib.auth.hashers import make_password
 import json
 import io
 import zipfile
+from django.db.models import Max
+
 
 
 thresholds = pd.read_csv("model_files/FinalSolFront1 (1).csv").iloc[0]
@@ -618,8 +620,7 @@ def view_results_by_submission(request, submission_id):
     })
 
 
-
-@login_required
+# No login required to view this page
 def learn_cvd(request):
     return render(request, 'medilab/learn.html')
 

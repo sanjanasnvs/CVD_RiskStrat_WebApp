@@ -50,17 +50,13 @@ rel="stylesheet">
                 <nav id="navbar" class="navbar order-last order-lg-0 me-auto w-100">
                     <ul class="navmenu d-flex align-items-center justify-content-end w-100" style="gap: 1.5rem; list-style: none; margin-bottom: 0; padding-left: 0; background: none;">
                         
-                        <!-- Universal Navigation Items (Always Visible) -->
-                        <li>
-                            <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
-                        </li>
-                        <li>
-                            <a href="{% url 'learn_cvd' %}" class="{% if request.resolver_match.url_name == 'learn_cvd' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Learn About CVD</a>
-                        </li>
-                        
                         {% if user.is_authenticated %}
                             {% if user.is_superuser %}
                                 <!-- Admin Navigation -->
+                                <li>
+                                    <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" 
+style="border-radius: 25px;">Home</a>
+                                </li>
                                 <li>
                                     <a href="{% url 'admin_panel' %}" class="{% if request.resolver_match.url_name == 'admin_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Admin Panel</a>
                                 </li>
@@ -74,6 +70,9 @@ rel="stylesheet">
                             {% elif user.is_staff %}
                                 <!-- Staff Navigation -->
                                 <li>
+                                    <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
+                                </li>
+                                <li>
                                     <a href="{% url 'admin_panel' %}" class="{% if request.resolver_match.url_name == 'admin_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Admin Panel</a>
                                 </li>
                                 <li>
@@ -86,7 +85,7 @@ rel="stylesheet">
                             {% elif user.role == 'clinician_approved' %}
                                 <!-- Clinician Navigation -->
                                 <li>
-                                    <a href="{% url 'clinician_dashboard' %}" class="{% if request.resolver_match.url_name == 'clinician_dashboard' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Dashboard</a>
+                                    <a href="{% url 'clinician_dashboard' %}" class="{% if request.resolver_match.url_name == 'clinician_dashboard' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
                                 </li>
                                 <li>
                                     <a href="{% url 'patient_risk_panel' %}" class="{% if request.resolver_match.url_name == 'patient_risk_panel' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Patient Risk Panel</a>
@@ -98,9 +97,27 @@ rel="stylesheet">
                             {% elif user.role == 'patient' %}
                                 <!-- Patient Navigation -->
                                 <li>
+                                    <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'learn_cvd' %}" class="{% if request.resolver_match.url_name == 'learn_cvd' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Learn About CVD</a>
+                                </li>
+                                <li>
                                     <a href="{% url 'patient_dashboard' %}" class="{% if request.resolver_match.url_name == 'patient_dashboard' or request.resolver_match.url_name == 'start_assessment' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Check My Risk</a>
                                 </li>
+                                
+                            {% else %}
+                                <!-- Default authenticated user navigation -->
+                                <li>
+                                    <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
+                                </li>
                             {% endif %}
+                            
+                        {% else %}
+                            <!-- Public/Unauthenticated Navigation -->
+                            <li>
+                                <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Home</a>
+                            </li>
                         {% endif %}
                         
                         <!-- Common Navigation Items for All Users -->
