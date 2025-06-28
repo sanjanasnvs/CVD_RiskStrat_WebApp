@@ -85,7 +85,7 @@
                                 <div class="row g-4">
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="text" name="name" class="form-control" id="name" placeholder="Your Name" required>
+                                            <input type="text" name="name" class="form-control" id="name" placeholder="" required>
                                             <label for="name">
                                                 <i class="bi bi-person me-2"></i>Your Name
                                             </label>
@@ -93,7 +93,7 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-floating">
-                                            <input type="email" name="email" class="form-control" id="email" placeholder="Your Email" required>
+                                            <input type="email" name="email" class="form-control" id="email" placeholder="" required>
                                             <label for="email">
                                                 <i class="bi bi-envelope me-2"></i>Your Email
                                             </label>
@@ -101,7 +101,7 @@
                                     </div>
                                     <div class="col-12">
                                         <div class="form-floating">
-                                            <input type="text" name="subject" class="form-control" id="subject" placeholder="Subject" required>
+                                            <input type="text" name="subject" class="form-control" id="subject" placeholder="" required>
                                             <label for="subject">
                                                 <i class="bi bi-chat-dots me-2"></i>Subject
                                             </label>
@@ -109,7 +109,7 @@
                                     </div>
                                     <div class="col-12">
                                         <div class="form-floating">
-                                            <textarea name="message" class="form-control" id="message" style="height: 150px" placeholder="Your Message" required></textarea>
+                                            <textarea name="message" class="form-control" id="message" style="height: 150px" placeholder="" required></textarea>
                                             <label for="message">
                                                 <i class="bi bi-pencil me-2"></i>Your Message
                                             </label>
@@ -224,6 +224,84 @@
     
     .map-container:hover iframe {
         transform: scale(1.02);
+    }
+    
+    .map-container iframe:hover {
+        transform: none !important;
+        box-shadow: none !important;
+        transition: none !important;
+    }
+
+    /* --- DARK MODE OVERRIDES --- */
+    body.dark-mode, body[data-theme="dark"] {
+        background: #18191a !important;
+        color: #f1f1f1 !important;
+    }
+    body.dark-mode .contact-hero,
+    body[data-theme="dark"] .contact-hero {
+        background: linear-gradient(135deg, #23272b 0%, #18191a 100%) !important;
+    }
+    body.dark-mode .bg-light,
+    body[data-theme="dark"] .bg-light {
+        background: #232323 !important;
+    }
+    body.dark-mode .card,
+    body[data-theme="dark"] .card {
+        background: #232323 !important;
+        color: #f1f1f1 !important;
+        border-color: #222 !important;
+    }
+    body.dark-mode .card-body,
+    body[data-theme="dark"] .card-body {
+        background: #232323 !important;
+        color: #f1f1f1 !important;
+    }
+    body.dark-mode .form-control,
+    body[data-theme="dark"] .form-control {
+        background: #18191a !important;
+        color: #f1f1f1 !important;
+        border: 1px solid #444 !important;
+    }
+    body.dark-mode .form-floating > label,
+    body[data-theme="dark"] .form-floating > label {
+        color: #bbb !important;
+    }
+    body.dark-mode .contact-info,
+    body[data-theme="dark"] .contact-info {
+        color: #f1f1f1 !important;
+    }
+    body.dark-mode .contact-info .text-muted,
+    body[data-theme="dark"] .contact-info .text-muted {
+        color: #bbb !important;
+    }
+    body.dark-mode .contact-icon,
+    body[data-theme="dark"] .contact-icon {
+        background: #232323 !important;
+        color: #0d6efd !important;
+    }
+    body.dark-mode .btn-primary,
+    body[data-theme="dark"] .btn-primary {
+        background: #0056b3 !important;
+        border-color: #0056b3 !important;
+        color: #fff !important;
+    }
+    body.dark-mode .btn-primary:hover,
+    body[data-theme="dark"] .btn-primary:hover {
+        background: #003974 !important;
+        border-color: #003974 !important;
+    }
+    body.dark-mode .map-container,
+    body[data-theme="dark"] .map-container {
+        background: #232323 !important;
+    }
+    body.dark-mode .contact-hero h1.display-4,
+    body[data-theme="dark"] .contact-hero h1.display-4 {
+        color: #fff !important;
+    }
+    body.dark-mode .map-section,
+    body[data-theme="dark"] .map-section {
+        background: #232323 !important;
+        background-color: #232323 !important;
     }
 </style>
 {% endblock %}

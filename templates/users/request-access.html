@@ -36,7 +36,7 @@
         {% if success %}
           <div class="alert alert-success mt-3">Your access request has been submitted successfully!</div>
         {% else %}
-        <form method="post" class="php-email-form" action="{% url 'request_access' %}" onsubmit="return validateForm()" novalidate>
+        <form method="post" action="{% url 'request_access' %}" novalidate>
           {% csrf_token %}
           <div class="row">
             <div class="col-md-6 mb-3">
@@ -96,11 +96,6 @@
           <div class="mb-3">
             <label for="message" class="form-label">Reason for requesting access</label>
             <textarea name="message" class="form-control" id="message" rows="3" placeholder="Reason for requesting access" required></textarea>
-          </div>
-          <div class="my-3">
-            <div class="loading">Loading</div>
-            <div class="error-message"></div>
-            <div class="sent-message">Your access request has been submitted successfully!</div>
           </div>
           {% if form.errors %}
             <div class="alert alert-danger mt-3">

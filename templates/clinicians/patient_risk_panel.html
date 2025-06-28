@@ -369,6 +369,49 @@
     color: #f1f1f1 !important;
     border-top: 1px solid #232a36 !important;
   }
+  .modern-table {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(25, 119, 204, 0.07);
+    background: #fff;
+  }
+  .modern-table th {
+    background: #f5f8fa;
+    font-weight: 700;
+    color: #2c4964;
+    border-bottom: 2px solid #e9ecef;
+    padding: 1rem 0.75rem;
+    vertical-align: middle;
+  }
+  .modern-table td {
+    padding: 0.85rem 0.75rem;
+    vertical-align: middle;
+    font-size: 1.05rem;
+  }
+  .modern-table tr {
+    transition: background 0.2s;
+  }
+  .modern-table tbody tr:hover {
+    background: #f0f6ff;
+  }
+  .modern-table .risk-badge {
+    font-size: 0.95rem;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .modern-table .action-btn.btn-view {
+    padding: 0.4rem 0.9rem;
+    font-size: 1rem;
+    border-radius: 6px;
+  }
+  body.dark-mode section,
+  body.dark-mode .section,
+  body[data-theme="dark"] section,
+  body[data-theme="dark"] .section {
+    background-color: #232a36 !important;
+    color: #f1f1f1 !important;
+  }
 </style>
 {% endblock %}
 
@@ -417,7 +460,7 @@
       <div class="search-card" style="border-radius: 18px; box-shadow: 0 4px 18px rgba(25, 119, 204, 0.07); padding: 1.2rem 2rem; margin-bottom: 2rem; display: flex; align-items: center; min-height: 72px; justify-content: space-between;">
         <div class="input-group" style="max-width: 400px; width: 100%;">
           <span class="input-group-text bg-white border-end-0"><i class="bi bi-search"></i></span>
-          <input type="text" class="form-control search-box border-start-0" placeholder="Search patients by name or email">
+          <input type="text" class="form-control search-box border-start-0" placeholder="Search patients by name or email" id="patientSearch">
         </div>
         <div class="bubble-group" style="display: flex; gap: 0.7rem; margin-left: 2rem;">
           <button class="bubble-btn active" style="width: auto; min-width: 48px; height: 38px; border-radius: 20px; border: 1.5px solid #1977cc; cursor: pointer; padding: 0 1.2rem; font-weight: 500;">All Patients</button>
@@ -461,30 +504,30 @@
           </div>
         </div>
       {% endif %}
-      <!-- Patient Table Header -->
-      <div class="patient-cards-header d-flex align-items-center px-3 py-2 mb-2" style="border-radius:12px; font-weight:700;">
-        <div style="min-width:180px; flex:2;"><i class="bi bi-person"></i> Patient</div>
-        <div style="min-width:90px; flex:1;"><i class="bi bi-calendar"></i> Age</div>
-        <div style="min-width:110px; flex:1;"><i class="bi bi-heart-pulse"></i> Risk Score</div>
-        <div style="min-width:120px; flex:1;"><i class="bi bi-geo-alt"></i> Risk Level</div>
-        <div style="min-width:160px; flex:1.5;"><i class="bi bi-clock"></i> Last Assessment</div>
-        <div style="min-width:120px; flex:1;"><i class="bi bi-gear"></i> Actions</div>
-      </div>
-      <!-- Patient Cards List -->
-      <div class="patient-cards-list mt-4">
-        {% if patient_data %}
-          {% for patient in patient_data %}
-            <div class="patient-card {% if patient.is_high_risk %}high-risk-alert{% endif %}">
-              <div class="d-flex align-items-center w-100">
-                <span class="avatar-circle">{{ patient.name|slice:':1'|upper }}</span>
-                <div class="ms-3 flex-grow-1">
-                  <div class="fw-bold">{{ patient.name }}</div>
-                  <div class="text-muted small">{{ patient.email }}</div>
-                </div>
-                <div class="patient-card-info ms-auto">
-                  <span class="me-3"><i class="bi bi-calendar"></i> {% if patient.dob %}{{ patient.dob|timesince|slice:':2' }} years{% else %}N/A{% endif %}</span>
-                  <span class="me-3"><i class="bi bi-heart-pulse"></i> {% if patient.risk_score %}{{ patient.risk_score }}{% else %}N/A{% endif %}</span>
-                  <span class="me-3">
+      <!-- Patient Table -->
+      <div class="table-responsive mt-4">
+        <table class="table table-bordered table-hover table-striped align-middle modern-table">
+          <thead class="table-light">
+            <tr>
+              <th>Patient</th>
+              <th>Age</th>
+              <th>Risk Score</th>
+              <th>Risk Level</th>
+              <th>Last Assessment</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="patientTableBody">
+            {% if patient_data %}
+              {% for patient in patient_data %}
+                <tr class="patient-row" data-patient-name="{{ patient.name|lower }}" data-patient-email="{{ patient.email|lower }}" data-risk-level="{% if patient.recommendation == 'High Risk' %}high{% elif patient.recommendation == 'Intermediate Risk' %}intermediate{% elif patient.recommendation == 'Low Risk' %}low{% else %}pending{% endif %}">
+                  <td>
+                    <strong>{{ patient.name }}</strong><br>
+                    <span class="text-muted small">{{ patient.email }}</span>
+                  </td>
+                  <td>{% if patient.dob %}{{ patient.dob|timesince|slice:':2' }} years{% else %}N/A{% endif %}</td>
+                  <td>{% if patient.risk_score %}{{ patient.risk_score }}{% else %}N/A{% endif %}</td>
+                  <td>
                     {% if patient.recommendation == 'High Risk' %}
                       <span class="risk-badge risk-high">High</span>
                     {% elif patient.recommendation == 'Intermediate Risk' %}
@@ -494,23 +537,20 @@
                     {% else %}
                       <span class="risk-badge risk-pending">Pending</span>
                     {% endif %}
-                  </span>
-                  <span class="me-3"><i class="bi bi-clock"></i> {% if patient.assessed_at %}{{ patient.assessed_at|date:'M d, Y H:i' }}{% else %}No assessment{% endif %}</span>
-                </div>
-                <div>
-                  <a href="{% url 'view_patient' patient.patient_id %}" class="action-btn btn-view"><i class="bi bi-eye"></i> View</a>
-                  <a href="{% url 'contact_patient' patient.patient_id %}" class="action-btn btn-contact"><i class="bi bi-envelope"></i> Contact</a>
-                </div>
-              </div>
-            </div>
-          {% endfor %}
-        {% else %}
-          <div class="empty-state">
-            <i class="bi bi-people" style="font-size: 3.5rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-            <h4>No Patients Assigned</h4>
-            <p class="text-muted">You don't have any patients assigned to you yet. Contact your administrator for patient assignments.</p>
-          </div>
-        {% endif %}
+                  </td>
+                  <td>{% if patient.assessed_at %}{{ patient.assessed_at|date:'M d, Y H:i' }}{% else %}No assessment{% endif %}</td>
+                  <td>
+                    <a href="{% url 'clinician_patient_results' patient.patient_id %}" class="action-btn btn-view"><i class="bi bi-eye"></i> View</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="6" class="text-center">No Patients Assigned</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
       </div>
     </div>
   </section>

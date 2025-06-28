@@ -141,33 +141,33 @@ data analysis.
             <div class="row g-4">
                 <div class="col-lg-4">
                     <div class="tech-card card border-0 shadow-sm h-100 text-center p-4 hover-lift">
-                        <div class="tech-icon bg-primary bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4">
+                        <div class="tech-icon bg-primary bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4 flex-column align-items-center justify-content-center">
                             <i class="bi bi-robot text-primary fs-1"></i>
+                            <h4 class="fw-bold mb-0 mt-1">Machine Learning Models</h4>
                         </div>
-                        <h4 class="fw-bold mb-3">Machine Learning Models</h4>
-                        <p class="text-muted mb-0">
+                        <p class="text-muted mb-0 mt-3">
                             Advanced algorithms trained on diverse clinical datasets to ensure accurate risk predictions across different patient populations.
                         </p>
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="tech-card card border-0 shadow-sm h-100 text-center p-4 hover-lift">
-                        <div class="tech-icon bg-success bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4">
+                        <div class="tech-icon bg-success bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4 flex-column align-items-center justify-content-center">
                             <i class="bi bi-database text-success fs-1"></i>
+                            <h4 class="fw-bold mb-0 mt-1">Clinical Data Integration</h4>
                         </div>
-                        <h4 class="fw-bold mb-3">Clinical Data Integration</h4>
-                        <p class="text-muted mb-0">
+                        <p class="text-muted mb-0 mt-3">
                             Seamless integration with electronic health records to provide comprehensive risk assessment based on complete patient profiles.
                         </p>
                     </div>
                 </div>
                 <div class="col-lg-4">
                     <div class="tech-card card border-0 shadow-sm h-100 text-center p-4 hover-lift">
-                        <div class="tech-icon bg-info bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4">
+                        <div class="tech-icon bg-info bg-opacity-10 rounded-circle p-4 d-inline-flex mb-4 flex-column align-items-center justify-content-center">
                             <i class="bi bi-shield-lock text-info fs-1"></i>
+                            <h4 class="fw-bold mb-0 mt-1">Security & Compliance</h4>
                         </div>
-                        <h4 class="fw-bold mb-3">Security & Compliance</h4>
-                        <p class="text-muted mb-0">
+                        <p class="text-muted mb-0 mt-3">
                             Enterprise-grade security infrastructure with UK GDPR compliance and robust privacy controls to protect sensitive health information.
                         </p>
                     </div>
@@ -250,6 +250,45 @@ data analysis.
     
     .btn:hover {
         transform: translateY(-2px);
+    }
+
+    /* --- DARK MODE OVERRIDES --- */
+    body.dark-mode .about-hero,
+    body[data-theme="dark"] .about-hero {
+        background: linear-gradient(135deg, #23272b 0%, #232323 100%) !important;
+    }
+    body.dark-mode .about-hero h1.display-4,
+    body[data-theme="dark"] .about-hero h1.display-4 {
+        color: #fff !important;
+    }
+    body.dark-mode .bg-light,
+    body[data-theme="dark"] .bg-light {
+        background: #232323 !important;
+    }
+    body.dark-mode section:not(.cta-section):not(.about-hero):not(.bg-light),
+    body[data-theme="dark"] section:not(.cta-section):not(.about-hero):not(.bg-light) {
+        background: #232323 !important;
+    }
+    body.dark-mode h2.display-5,
+    body[data-theme="dark"] h2.display-5 {
+        color: #fff !important;
+    }
+    body.dark-mode .btn-light,
+    body[data-theme="dark"] .btn-light {
+        color: #111 !important;
+    }
+    body.dark-mode .btn-light .bi,
+    body[data-theme="dark"] .btn-light .bi {
+        color: #111 !important;
+    }
+    body.dark-mode .btn-outline-light,
+    body[data-theme="dark"] .btn-outline-light {
+        color: #fff !important;
+        border-color: #fff !important;
+    }
+    body.dark-mode .btn-outline-light .bi,
+    body[data-theme="dark"] .btn-outline-light .bi {
+        color: #fff !important;
     }
 </style>
 {% endblock %}

@@ -6,6 +6,9 @@ class CustomUserManager(BaseUserManager):
         if not email:
             raise ValueError("Email must be set")
         email = self.normalize_email(email)
+        # Set username to email if not provided
+        if 'username' not in extra_fields or not extra_fields['username']:
+            extra_fields['username'] = email
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -32,6 +35,7 @@ class Users(AbstractUser):
     password = models.CharField(max_length=255)  
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
+    username = models.CharField(max_length=150, unique=True, blank=True, null=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=True)  # Required for access to admin
     is_superuser = models.BooleanField(default=True)  # Required for superuser privileges
@@ -47,7 +51,7 @@ class Users(AbstractUser):
     )
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+    REQUIRED_FIELDS = ['first_name', 'last_name']
     #  Plug in the custom manager here
     objects = CustomUserManager()
 

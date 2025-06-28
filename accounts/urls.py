@@ -11,7 +11,7 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('patient/dashboard/', views.patient_dashboard, name='patient_dashboard'),
-    path('clinician/dashboard/', views.patient_risk_panel, name='patient_risk_panel'),
+    path('clinician/dashboard/', views.clinician_dashboard, name='clinician_dashboard'),
     path('signup/', views.signup_view, name='signup'),
     path('dashboard/', views.role_based_dashboard_redirect, name='dashboard_redirect'),
 

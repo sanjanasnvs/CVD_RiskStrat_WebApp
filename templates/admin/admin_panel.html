@@ -8,6 +8,31 @@
   .container {
     background: transparent !important;
   }
+  .role-badge {
+    display: inline-block;
+    padding: 0.35em 1em;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 1em;
+    color: #fff;
+    background: #6c757d;
+    letter-spacing: 0.02em;
+    margin-right: 0.2em;
+  }
+  .role-badge.clinician {
+    background: #198754;
+  }
+  .role-badge.patient {
+    background: #0056b3;
+    color: #fff;
+  }
+  .role-badge.admin {
+    background: #6f42c1;
+  }
+  .role-badge.pending {
+    background: #ffc107;
+    color: #222;
+  }
 </style>
 <section id="doctors" class="doctors">
     <div class="container">
@@ -75,6 +100,14 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">All Users</h5>
+                        <div class="mb-3 d-flex align-items-center gap-2">
+                            <label for="userRoleFilter" class="form-label mb-0 me-2">Filter by:</label>
+                            <select id="userRoleFilter" class="form-select w-auto">
+                                <option value="all">All</option>
+                                <option value="clinician_approved">Clinician</option>
+                                <option value="patient">Patient</option>
+                            </select>
+                        </div>
                         
                         {% if all_users %}
                             <div class="table-responsive">
@@ -83,15 +116,15 @@
                                         <tr>
                                             <th>Name</th>
                                             <th>Email</th>
-                                            <th>Affiliation</th>
+                                            <th>Affiliation/Requesting Dr</th>
                                             <th>Registration Date/Time</th>
                                             <th>Status/Role</th>
                                             <th>Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="userTableBody">
                                         {% for user_obj in all_users %}
-                                            <tr>
+                                            <tr data-role="{{ user_obj.role }}">
                                                 <td>{{ user_obj.first_name }} {{ user_obj.last_name }}</td>
                                                 <td>{{ user_obj.email }}</td>
                                                 <td>
@@ -99,14 +132,28 @@
                                                         {% with clinician=user_obj.clinicians %}
                                                             {{ clinician.specialty }}
                                                         {% endwith %}
+                                                    {% elif user_obj.role == 'patient' %}
+                                                        {% with patient=user_obj.patients %}
+                                                            {% if patient.clinician %}
+                                                                Dr. {{ patient.clinician.user.first_name }} {{ patient.clinician.user.last_name }}
+                                                            {% else %}
+                                                                N/A
+                                                            {% endif %}
+                                                        {% endwith %}
                                                     {% endif %}
                                                 </td>
                                                 <td>{{ user_obj.date_joined|date:"Y-m-d H:i" }}</td>
                                                 <td>
                                                     {% if user_obj.role == 'clinician_approved' %}
-                                                        <span class="badge bg-success">Approved</span>
+                                                        <span class="role-badge clinician">Clinician (Approved)</span>
+                                                    {% elif user_obj.role == 'patient' %}
+                                                        <span class="role-badge patient">Patient</span>
+                                                    {% elif user_obj.role == 'admin' %}
+                                                        <span class="role-badge admin">Admin</span>
+                                                    {% elif user_obj.role == 'clinician_pending' %}
+                                                        <span class="role-badge pending">Pending</span>
                                                     {% else %}
-                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                        <span class="role-badge">Unknown</span>
                                                     {% endif %}
                                                 </td>
                                                 <td>
@@ -128,4 +175,20 @@
         </div>
     </div>
 </section>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const filter = document.getElementById('userRoleFilter');
+  const rows = document.querySelectorAll('#userTableBody tr');
+  filter.addEventListener('change', function() {
+    const value = this.value;
+    rows.forEach(row => {
+      if (value === 'all' || row.getAttribute('data-role') === value) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  });
+});
+</script>
 {% endblock %} 

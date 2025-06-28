@@ -692,7 +692,7 @@ def signup_view(request):
             # Get the selected clinician from the form
             clinician_id = request.POST.get('clinician')
             clinician = None
-            if clinician_id:
+            if clinician_id and clinician_id != 'none':
                 try:
                     clinician = Clinicians.objects.get(pk=clinician_id)
                 except Clinicians.DoesNotExist:

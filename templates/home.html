@@ -356,7 +356,7 @@ platform provides the insights you need to make informed decisions about heart h
                                 <a href="{% url 'clinician_dashboard' %}" class="btn btn-primary btn-lg px-4 py-3 fw-medium shadow-sm">
                                     <i class="bi bi-speedometer2 me-2"></i>Clinical Dashboard
                                 </a>
-                                <a href="{% url 'batch_processing' %}" class="btn btn-success btn-lg px-4 py-3 fw-medium shadow-sm">
+                                <a href="{% url 'batch_prediction' %}" class="btn btn-success btn-lg px-4 py-3 fw-medium shadow-sm">
                                     <i class="bi bi-layers me-2"></i>Batch Processing
                                 </a>
                             </div>
@@ -607,6 +607,20 @@ platform provides the insights you need to make informed decisions about heart h
         line-height: 1.6;
     }
     
+    /* Vibrant icon backgrounds for light mode */
+    .feature-icon.bg-primary {
+        background: #1977cc !important;
+        color: #fff !important;
+    }
+    .feature-icon.bg-success {
+        background: #00b96b !important;
+        color: #fff !important;
+    }
+    .feature-icon.bg-info {
+        background: #00bcd4 !important;
+        color: #fff !important;
+    }
+    
     /* Stats Section */
     .stats {
         background: linear-gradient(135deg, #2c4964 0%, #1e3a5f 100%);
@@ -727,6 +741,142 @@ platform provides the insights you need to make informed decisions about heart h
         .stat-number {
             font-size: 2.5rem;
         }
+    }
+
+    /* Remove hover-lift effect from all images in the contact section */
+    #contact img:hover, #contact .hover-lift:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* --- DARK MODE OVERRIDES --- */
+    body.dark-mode .hero-section,
+    body[data-theme="dark"] .hero-section {
+        background: linear-gradient(135deg, #23272b 0%, #232323 100%) !important;
+    }
+    body.dark-mode .bg-light,
+    body[data-theme="dark"] .bg-light,
+    body.dark-mode .features,
+    body[data-theme="dark"] .features {
+        background: #232323 !important;
+    }
+    body.dark-mode .feature-card,
+    body[data-theme="dark"] .feature-card {
+        background: #181a1b !important;
+        color: #fff !important;
+        border-color: #232323 !important;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.25);
+    }
+    body.dark-mode .feature-card h4,
+    body[data-theme="dark"] .feature-card h4 {
+        color: #fff !important;
+    }
+    body.dark-mode .feature-card p,
+    body[data-theme="dark"] .feature-card p {
+        color: #bbb !important;
+    }
+    body.dark-mode .stats,
+    body[data-theme="dark"] .stats {
+        background: linear-gradient(135deg, #23272b 0%, #232323 100%) !important;
+        color: #fff !important;
+    }
+    body.dark-mode .step-card h5,
+    body[data-theme="dark"] .step-card h5 {
+        color: #fff !important;
+    }
+    body.dark-mode .step-card p,
+    body[data-theme="dark"] .step-card p {
+        color: #bbb !important;
+    }
+    body.dark-mode .cta,
+    body[data-theme="dark"] .cta {
+        background: linear-gradient(135deg, #23272b 0%, #232323 100%) !important;
+        color: #fff !important;
+    }
+    body.dark-mode .cta h2,
+    body[data-theme="dark"] .cta h2 {
+        color: #fff !important;
+    }
+    body.dark-mode .cta p,
+    body[data-theme="dark"] .cta p {
+        color: #bbb !important;
+    }
+    body.dark-mode .text-primary,
+    body[data-theme="dark"] .text-primary {
+        color: #1977cc !important;
+    }
+    body.dark-mode .btn-primary,
+    body[data-theme="dark"] .btn-primary {
+        background: #1977cc !important;
+        border-color: #1977cc !important;
+        color: #fff !important;
+    }
+    body.dark-mode .bg-primary,
+    body[data-theme="dark"] .bg-primary {
+        background: #1977cc !important;
+        color: #fff !important;
+    }
+    body.dark-mode .feature-icon.bg-primary,
+    body[data-theme="dark"] .feature-icon.bg-primary {
+        background: #2196f3 !important;
+        color: #fff !important;
+    }
+    body.dark-mode .feature-icon.bg-success,
+    body[data-theme="dark"] .feature-icon.bg-success {
+        background: #00e676 !important;
+        color: #fff !important;
+    }
+    body.dark-mode .feature-icon.bg-info,
+    body[data-theme="dark"] .feature-icon.bg-info {
+        background: #1de9b6 !important;
+        color: #fff !important;
+    }
+    body.dark-mode .hero-section h1.display-3,
+    body[data-theme="dark"] .hero-section h1.display-3 {
+        color: #fff !important;
+    }
+    body.dark-mode .hero-section .bi-heart-pulse-fill,
+    body[data-theme="dark"] .hero-section .bi-heart-pulse-fill {
+        color: #fff !important;
+    }
+    body.dark-mode .btn-success,
+    body[data-theme="dark"] .btn-success {
+        color: #fff !important;
+    }
+    body.dark-mode .btn-success .bi,
+    body[data-theme="dark"] .btn-success .bi {
+        color: #fff !important;
+    }
+    .btn-light {
+        color: #111 !important;
+    }
+    .btn-light .bi {
+        color: #111 !important;
+    }
+    .btn-outline-light {
+        color: #fff !important;
+        border-color: #fff !important;
+    }
+    .btn-outline-light .bi {
+        color: #fff !important;
+    }
+    body.dark-mode #about.about.section,
+    body[data-theme="dark"] #about.about.section {
+        background: #181a1b !important;
+        color: #f1f1f1 !important;
+    }
+    body.dark-mode #about.about.section h3,
+    body[data-theme="dark"] #about.about.section h3 {
+        color: #1977cc !important;
+    }
+    body.dark-mode #about.about.section p,
+    body[data-theme="dark"] #about.about.section ul,
+    body[data-theme="dark"] #about.about.section li {
+        color: #f1f1f1 !important;
+    }
+    body.dark-mode #about.about.section .bi-check-circle-fill,
+    body[data-theme="dark"] #about.about.section .bi-check-circle-fill {
+        color: #1977cc !important;
     }
 </style>
 {% endblock %}

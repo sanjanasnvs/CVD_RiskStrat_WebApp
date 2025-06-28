@@ -139,6 +139,74 @@
   .quiz-options .form-check {
     margin-bottom: 0.5rem;
   }
+  
+  body.dark-mode .learn-container {
+    background-color: #232a36;
+    color: #f1f1f1;
+    box-shadow: 0 5px 15px rgba(25, 119, 204, 0.10);
+  }
+  body.dark-mode .learn-section {
+    background: transparent;
+    color: #f1f1f1;
+    border-bottom: 1px solid #333;
+  }
+  body.dark-mode .learn-section h3 {
+    color: #90cdf4;
+  }
+  body.dark-mode .learn-sidebar .card {
+    background: #18191a;
+    color: #f1f1f1;
+    border-color: #232a36;
+  }
+  body.dark-mode .learn-sidebar .card-header {
+    background: #1977cc;
+    color: #fff;
+  }
+  body.dark-mode .learn-nav .nav-link {
+    color: #e0e0e0;
+    background: #18191a;
+    border-left: 3px solid transparent;
+  }
+  body.dark-mode .learn-nav .nav-link.active {
+    background: #232a36;
+    color: #90cdf4;
+    border-left: 3px solid #90cdf4;
+  }
+  body.dark-mode .learn-nav .nav-link:hover:not(.active) {
+    background: #232a36;
+    border-left: 3px solid #333;
+  }
+  body.dark-mode .fact-card {
+    background: #18191a;
+    color: #f1f1f1;
+    border-left: 4px solid #90cdf4;
+  }
+  body.dark-mode .fact-card h5,
+  body.dark-mode .fact-card .icon {
+    color: #90cdf4;
+  }
+  body.dark-mode .resource-card {
+    background: #18191a;
+    color: #f1f1f1;
+    border-color: #232a36;
+  }
+  body.dark-mode .resource-card:hover {
+    box-shadow: 0 10px 20px rgba(25, 119, 204, 0.15);
+    border-color: #90cdf4;
+  }
+  body.dark-mode .resource-card .icon {
+    color: #90cdf4;
+  }
+  body.dark-mode .quiz-container {
+    background: #232a36;
+    color: #f1f1f1;
+  }
+  body.dark-mode .text-muted {
+    color: #b0b0b0 !important;
+  }
+  body.dark-mode .card-title .bi {
+    color: #1977cc !important;
+  }
 </style>
 
 <section class="learn-section py-5">
@@ -180,7 +248,7 @@
               <!-- What is CVD Section -->
               <div id="what-is-cvd" class="learn-section">
                 <h3>What is Cardiovascular Disease?</h3>
-                <img src="{% static 'medilab/assets/img/cvd-diagram.jpg' %}" alt="Cardiovascular System Diagram" class="img-fluid">
+                <!-- <img src="{% static 'medilab/assets/img/cvd-diagram.jpg' %}" alt="Cardiovascular System Diagram" class="img-fluid"> -->
                 <p>
                   Cardiovascular disease (CVD) refers to a class of diseases that involve the heart or blood vessels. CVD includes coronary artery disease, heart failure, congenital heart disease, 
 and problems with heart valves.

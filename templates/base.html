@@ -21,6 +21,12 @@ rel="stylesheet">
 
     <!-- Template Main CSS File -->
     <link href="{% static 'assets/css/main.css' %}?v=1.1" rel="stylesheet">
+
+    <style>
+    #accessibility-panel {
+        margin-top: 80px;
+    }
+    </style>
 </head>
 
 <body>
@@ -37,16 +43,13 @@ rel="stylesheet">
                 <a href="https://www.bhf.org.uk/" target="_blank" rel="noopener" style="color: #fff; font-weight: 700; text-decoration: none;">British Heart Foundation</a>
               </span>
             </div>
-            <div class="email-info d-flex align-items-center">
-              <i class="bi bi-envelope d-flex align-items-center me-2"></i>
-              <a href="mailto:konstantinos.theofilatos@kcl.ac.uk" style="color: #fff; font-weight: 600; text-decoration: none;">konstantinos.theofilatos@kcl.ac.uk</a>
-            </div>
           </div>
         </div>
 
         <!-- ======= Header ======= -->
         <header id="header">
             <div class="container d-flex align-items-center">
+                <a href="{% url 'home' %}" class="navbar-brand fw-bold me-4" style="font-size: 1.5rem; color: #1977cc; letter-spacing: 0.5px; text-decoration: none;">CVD Risk Predictor</a>
                 <nav id="navbar" class="navbar order-last order-lg-0 me-auto w-100">
                     <ul class="navmenu d-flex align-items-center justify-content-end w-100" style="gap: 1.5rem; list-style: none; margin-bottom: 0; padding-left: 0; background: none;">
                         

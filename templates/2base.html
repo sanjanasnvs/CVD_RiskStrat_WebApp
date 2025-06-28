@@ -121,6 +121,11 @@ style="border-radius: 25px;">Home</a>
                         {% endif %}
                         
                         <!-- Common Navigation Items for All Users -->
+                        {% if user.is_authenticated and user.role == 'clinician_approved' %}
+                        <li>
+                            <a href="{% url 'learn_cvd' %}" class="{% if request.resolver_match.url_name == 'learn_cvd' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">Learn About CVD</a>
+                        </li>
+                        {% endif %}
                         <li>
                             <a href="{% url 'about' %}" class="{% if request.resolver_match.url_name == 'about' %}btn btn-primary text-white px-4 py-1{% else %}nav-link{% endif %}" style="border-radius: 25px;">About</a>
                         </li>
