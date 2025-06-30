@@ -1,9 +1,36 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
 {% load static %}
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Assessment History - CVD Risk Predictor</title>
+<meta name="description" content="">
+<meta name="keywords" content="">
 
-{% block title %}Assessment History - CVD Risk Predictor{% endblock %}
+<!-- Favicons -->
+<link href="{% static 'medilab/assets/img/favicon.png' %}" rel="icon">
+<link href="{% static 'medilab/assets/img/apple-touch-icon.png' %}" rel="apple-touch-icon">
 
-{% block content %}
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+<link 
+href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Raleway:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" 
+rel="stylesheet">
+
+<!-- Vendor CSS Files -->
+<link href="{% static 'medilab/assets/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+<link href="{% static 'medilab/assets/vendor/bootstrap-icons/bootstrap-icons.css' %}" rel="stylesheet">
+<link href="{% static 'medilab/assets/vendor/aos/aos.css' %}" rel="stylesheet">
+<link href="{% static 'medilab/assets/vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet">
+<link href="{% static 'medilab/assets/vendor/glightbox/css/glightbox.min.css' %}" rel="stylesheet">
+<link href="{% static 'medilab/assets/vendor/swiper/swiper-bundle.min.css' %}" rel="stylesheet">
+
+<!-- Main CSS File -->
+<link href="{% static 'medilab/assets/css/main.css' %}" rel="stylesheet">
+
 <style>
   .history-container {
     background-color: #fff;
@@ -235,89 +262,185 @@
     }
   }
 </style>
+</head>
 
-<section class="history-section py-5">
-  <div class="container">
-    <div class="row">
-      <div class="col-lg-10 mx-auto">
-        <!-- History Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4" data-aos="fade-up">
-          <div>
-            <h2><i class="bi bi-clock-history me-2"></i>Assessment History</h2>
-            <p class="text-muted mb-0">Access your previous CVD risk assessments and review the model results and recommendations.</p>
-          </div>
-          <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
-          </a>
-        </div>
-        
-        <!-- History Container -->
-        <div class="history-container" data-aos="fade-up" data-aos-delay="200">
-          
-          {% if assessments %}
-            <div class="mb-4">
-              <h4 class="mb-3"><i class="bi bi-list-ul me-2"></i>Your Past Assessments</h4>
-              <p class="text-muted">Click on any assessment to view detailed results from all models.</p>
-            </div>
+{% now "U" as timestamp %}
 
-            <!-- Assessment List -->
-            <div class="assessment-list">
-              <div class="list-header">
-                <i class="bi bi-calendar3 me-2"></i>Assessment History
-              </div>
-              
-              {% for assessment in assessments %}
-                <div class="assessment-item">
-                  <div class="assessment-date-section">
-                    <div class="date-icon">
-                      <i class="bi bi-calendar-check"></i>
-                    </div>
-                    <div class="date-info">
-                      <div class="date-primary">{{ assessment.assessed_at|date:"F d, Y" }}</div>
-                      <p class="date-secondary">{{ assessment.assessed_at|date:"g:i A" }}</p>
-                    </div>
-                  </div>
-                  
-                  <div class="actions-section">
-                    <a href="{% url 'view_results_by_submission' assessment.submission_id %}" class="btn-view">
-                      <i class="bi bi-eye"></i>
-                      View Results
-                    </a>
-                    <button class="btn-print" onclick="window.print()" title="Print Results">
-                      <i class="bi bi-printer"></i>
-                    </button>
-                  </div>
-                </div>
-              {% empty %}
-                <div class="assessment-item">
-                  <div class="empty-state w-100">
-                    <div class="icon">
-                      <i class="bi bi-inbox"></i>
-                    </div>
-                    <h4>No assessments found</h4>
-                    <p>You haven't completed any assessments yet.</p>
-                  </div>
-                </div>
-              {% endfor %}
-            </div>
+<body class="history-page">
 
-          {% else %}
-            <!-- Empty State -->
-            <div class="empty-state">
-              <div class="icon">
-                <i class="bi bi-clipboard-x"></i>
-              </div>
-              <h4>No Assessment History Found</h4>
-              <p class="text-muted">You haven't completed any assessments yet. Start your first cardiovascular risk assessment to see your results here.</p>
-              <a href="{% url 'start_assessment' %}" class="btn-start">
-                <i class="bi bi-play-circle"></i>
-                Start Your First Assessment
-              </a>
-            </div>
-          {% endif %}
-        </div>
+<header id="header" class="header sticky-top">
+  <div class="topbar d-flex align-items-center">
+    <div class="container d-flex justify-content-center justify-content-md-between">
+      <div class="contact-info d-flex align-items-center">
+        <i class="bi bi-envelope d-flex align-items-center"><a href="mailto:contact@example.com">contact@example.com</a></i>
+        <i class="bi bi-phone d-flex align-items-center ms-4"><span>+1 5589 55488 55</span></i>
+      </div>
+      <div class="social-links d-none d-md-flex align-items-center">
+        <a href="#" class="twitter"><i class="bi bi-twitter-x"></i></a>
+        <a href="#" class="facebook"><i class="bi bi-facebook"></i></a>
+        <a href="#" class="instagram"><i class="bi bi-instagram"></i></a>
+        <a href="#" class="linkedin"><i class="bi bi-linkedin"></i></a>
       </div>
     </div>
   </div>
-</section>
-{% endblock %}
+
+  <div class="branding d-flex align-items-center">
+    <div class="container position-relative d-flex align-items-center justify-content-between">
+      <a href="{% url 'starter-page' %}" class="logo d-flex align-items-center me-auto">
+        <h1 class="sitename">CVD Risk Predictor</h1>
+      </a>
+
+      <nav id="navmenu" class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarNav">
+             <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="{% url 'starter-page' %}">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="#about">About</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'learn_cvd' %}">Learn About CVD</a></li>
+                <li class="nav-item"><a class="nav-link" href="#contact">Contact</a></li>
+
+                {% if user.is_authenticated %}
+                  {% if user.role == 'patient' %}
+                    <li class="nav-item"><a class="nav-link active" href="{% url 'patient_dashboard' %}">CVD Risk for Patients</a></li>
+                  {% elif user.role == 'clinician_approved' %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'clinician_dashboard' %}">CVD Risk for Clinicians</a></li>
+                  {% endif %}
+                  
+                  <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                      <i class="bi bi-person-circle me-1"></i>{{ user.username }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                      <li><a class="dropdown-item" href="{% url 'logout' %}">Logout</a></li>
+                    </ul>
+                  </li>
+                {% endif %}
+              </ul>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </div>
+</header>
+
+<main class="main">
+  <section class="history-section py-5">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-10 mx-auto">
+          <!-- History Header -->
+          <div class="d-flex justify-content-between align-items-center mb-4" data-aos="fade-up">
+            <div>
+              <h2><i class="bi bi-clock-history me-2"></i>Assessment History</h2>
+              <p class="text-muted mb-0">Access your previous CVD risk assessments and review the model results and recommendations.</p>
+            </div>
+            <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-secondary">
+              <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+            </a>
+          </div>
+          
+          <!-- History Container -->
+          <div class="history-container" data-aos="fade-up" data-aos-delay="200">
+            
+            {% if assessments %}
+              <div class="mb-4">
+                <h4 class="mb-3"><i class="bi bi-list-ul me-2"></i>Your Past Assessments</h4>
+                <p class="text-muted">Click on any assessment to view detailed results from all models.</p>
+              </div>
+
+              <!-- Assessment List -->
+              <div class="assessment-list">
+                <div class="list-header">
+                  <i class="bi bi-calendar3 me-2"></i>Assessment History
+                </div>
+                
+                {% for assessment in assessments %}
+                  <div class="assessment-item">
+                    <div class="assessment-date-section">
+                      <div class="date-icon">
+                        <i class="bi bi-calendar-check"></i>
+                      </div>
+                      <div class="date-info">
+                        <div class="date-primary">{{ assessment.assessed_at|date:"F d, Y" }}</div>
+                        <p class="date-secondary">{{ assessment.assessed_at|date:"g:i A" }}</p>
+                      </div>
+                    </div>
+                    
+                    <div class="actions-section">
+                      <a href="{% url 'view_results_by_submission' assessment.submission_id %}" class="btn-view">
+                        <i class="bi bi-eye"></i>
+                        View Results
+                      </a>
+                      <button class="btn-print" onclick="window.print()" title="Print Results">
+                        <i class="bi bi-printer"></i>
+                      </button>
+                    </div>
+                  </div>
+                {% empty %}
+                  <div class="assessment-item">
+                    <div class="empty-state w-100">
+                      <div class="icon">
+                        <i class="bi bi-inbox"></i>
+                      </div>
+                      <h4>No assessments found</h4>
+                      <p>You haven't completed any assessments yet.</p>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+
+            {% else %}
+              <!-- Empty State -->
+              <div class="empty-state">
+                <div class="icon">
+                  <i class="bi bi-clipboard-x"></i>
+                </div>
+                <h4>No Assessment History Found</h4>
+                <p class="text-muted">You haven't completed any assessments yet. Start your first cardiovascular risk assessment to see your results here.</p>
+                <a href="{% url 'start_assessment' %}" class="btn-start">
+                  <i class="bi bi-play-circle"></i>
+                  Start Your First Assessment
+                </a>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="footer" class="footer light-background">
+  <div class="container copyright text-center mt-4">
+    <p>© <span>Copyright</span> <strong class="px-1 sitename">CVD Risk Predictor</strong> <span>All Rights Reserved</span></p>
+    <div class="credits">
+      Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Scroll Top -->
+<a href="#" id="scroll-top" class="scroll-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+
+<!-- Preloader -->
+<div id="preloader"></div>
+
+<!-- Vendor JS Files -->
+<script src="{% static 'medilab/assets/vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'medilab/assets/vendor/php-email-form/validate.js' %}"></script>
+<script src="{% static 'medilab/assets/vendor/aos/aos.js' %}"></script>
+<script src="{% static 'medilab/assets/vendor/glightbox/js/glightbox.min.js' %}"></script>
+<script src="{% static 'medilab/assets/vendor/purecounter/purecounter_vanilla.js' %}"></script>
+<script src="{% static 'medilab/assets/vendor/swiper/swiper-bundle.min.js' %}"></script>
+
+<!-- Main JS File -->
+<script src="{% static 'medilab/assets/js/main.js' %}?{{ timestamp }}"></script>
+
+</body>
+
+</html>

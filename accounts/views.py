@@ -14,7 +14,9 @@ from django.http import JsonResponse, FileResponse, Http404, HttpResponse
 from django.db import DatabaseError
 from django.db import transaction, connection
 from django.views.decorators.http import require_http_methods, require_POST
-from utils import calculate_features_from_responses, should_display_question, generate_survshap_plots
+from .explainers import generate_explainability_plot
+from django.conf import settings
+#from .utils import calculate_features_from_responses, should_display_question, generate_survshap_plots
 from datetime import datetime
 import os
 from django.conf import settings
@@ -22,8 +24,30 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
 import json
 import io
+from django.shortcuts import render, redirect
+from accounts.models import CVD_risk_Questionnaire, CVD_risk_QuestionResponseOptions, CVD_risk_Responses
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 import zipfile
+from feature_calculators import (
+    model1_sociodemographic,
+    model2_healthandmed,
+    model3_SSF,
+    model4_early_life,
+    model5_family_history,
+    model6_lifestyle,
+    model7_biggestmodel
+)
 from django.db.models import Max
+from django.db import connection, DatabaseError
+from uuid import uuid4
+from datetime import datetime
+import os
+from uuid import uuid4
+import joblib
+from .utils import should_display_question
+from Questionnaire_data.utils import get_visible_questions_for_patient_in_category
+
 
 
 
@@ -37,6 +61,9 @@ CATEGORY_THRESHOLDS = {
     "Lifestyle and environment": (thresholds["Min_Threshold6"], thresholds["Max_Threshold6"]),
     "Psychosocial factors": (thresholds["Min_Threshold7"], thresholds["Max_Threshold7"])
 }
+CATEGORY_ORDER = ["Sociodemographics", "Health and medical history", "Sex-specific factors",
+                  "Early life factors", "Family history", "Lifestyle and environment",
+                  "Psychosocial factors"]
 
 def get_risk_category(score, category):
     """
@@ -148,11 +175,18 @@ def patient_dashboard(request):
         'patient': patient_profile
     }
     return render(request, 'patients/dashboard.html')
-	
-from django.shortcuts import render, redirect
-from accounts.models import CVD_risk_Questionnaire, CVD_risk_QuestionResponseOptions, CVD_risk_Responses
-from django.contrib.auth.decorators import login_required
-from django.urls import reverse
+
+
+# 🧠 Optional helper for message text
+def get_final_message_text(risk_category):
+    if risk_category == "Low Risk":
+        return "✅ You are at low 10-year risk of CVD. Please maintain a healthy lifestyle."
+    elif risk_category == "High Risk":
+        return "⚠️ You are at high 10-year risk of CVD. Please contact your GP or clinician for further testing."
+    else:
+        return "❓ Risk inconclusive. Continue to next section."
+
+
 
 @require_http_methods(["GET", "POST"])
 @login_required
@@ -548,6 +582,7 @@ def patient_self_results(request):
 
 
 
+
 @login_required
 def clinician_patient_results(request, patient_id=None):
     # Step 1: Determine the patient based on role
@@ -613,6 +648,7 @@ def clinician_patient_results(request, patient_id=None):
 
 
 
+
 @login_required
 @login_required
 def assessment_history(request):
@@ -634,6 +670,7 @@ def assessment_history(request):
     return render(request, 'patients/history.html', {
         'assessments': assessment_groups
     })
+
 
 
 @login_required
@@ -715,7 +752,6 @@ def logout_view(request):
     return redirect('login')
 
 def signup_view(request):
-    from .models import Clinicians, Users
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
@@ -723,7 +759,7 @@ def signup_view(request):
             print(" User created:", user)
             print(" Role:", user.role)
 
-            # Get the selected clinician from the form
+            # Get selected clinician ID from the form
             clinician_id = request.POST.get('clinician')
             clinician = None
             if clinician_id and clinician_id != 'none':
@@ -732,8 +768,16 @@ def signup_view(request):
                 except Clinicians.DoesNotExist:
                     clinician = None
 
-            # Create patient profile and link to clinician
-            Patients.objects.create(user=user, clinician=clinician)
+            # Get sex from form
+            sex = request.POST.get("sex")
+
+            try:
+                # Only create patient if not already linked
+                if not Patients.objects.filter(user=user).exists():
+                    Patients.objects.create(user=user, clinician=clinician, sex=sex)
+            except IntegrityError:
+                messages.error(request, "A patient profile already exists for this user.")
+                return redirect('login')
 
             login(request, user)
             return redirect('patient_dashboard')
@@ -741,9 +785,10 @@ def signup_view(request):
             print(" Form errors:", form.errors)
     else:
         form = CustomUserCreationForm()
-    # Only pass approved clinicians
+
     clinicians = Clinicians.objects.filter(user__role='clinician_approved')
     return render(request, 'users/signup.html', {'form': form, 'clinicians': clinicians})
+
 
 
 # Create your views here.
