@@ -180,11 +180,11 @@ def patient_dashboard(request):
 # 🧠 Optional helper for message text
 def get_final_message_text(risk_category):
     if risk_category == "Low Risk":
-        return "✅ You are at low 10-year risk of CVD. Please maintain a healthy lifestyle."
+        return "You are at low 10-year risk of CVD. Please maintain a healthy lifestyle."
     elif risk_category == "High Risk":
-        return "⚠️ You are at high 10-year risk of CVD. Please contact your GP or clinician for further testing."
+        return "⚠️You are at high 10-year risk of CVD. Please contact your GP or clinician for further testing."
     else:
-        return "❓ Risk inconclusive. Continue to next section."
+        return "Inconclusive result: Please consult your healthcare provider and book a blood test for further evaluation."
 
 
 
@@ -366,7 +366,7 @@ def assessment_view(request):
                         patient_id=patient.patient_id
                         )
                     
-                    # Early stopping — render final message if conclusive result reached
+                    # Early stopping Case 1: Early stopping - Low/High → show final message
                     if risk_category in ["Low Risk", "High Risk"]:
                         request.session.pop("submission_id", None)
                         return render(request, "patients/final_message.html", {
@@ -374,9 +374,18 @@ def assessment_view(request):
                             "recommendation": risk_category,
                             "message": get_final_message_text(risk_category)
                         })
+                    elif risk_category == "Inconclusive" and not next_category:
+                        request.session.pop("submission_id", None)
+                        return render(request, "patients/final_message.html", {
+                            "risk_score": risk_score,
+                            "recommendation": risk_category,
+                            "message": get_final_message_text(risk_category)
+                            })
 
                 except Exception as e:
                     print(f"❌ Error during model execution for {category}: {e}")
+
+                    
 
             # Only clear submission_id at end of full or early-stopped run
             if risk_category in ["Low Risk", "High Risk"] or not next_category:
@@ -386,7 +395,7 @@ def assessment_view(request):
                 return redirect(f"{reverse('start_assessment')}?category={next_category}")
             else:
                 request.session['completed_categories'] = []
-                return redirect('patient_results')
+                return redirect('patient_self_results')
         else:
             error_message = "Please answer at least one question before proceeding."
 
