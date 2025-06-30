@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from accounts.models import ML_Models, CVD_ModelFeatureMappings, CVD_Risk_Model_InputFeatures
 import pandas as pd
 import re
+import os
 
 
 class Command(BaseCommand):
@@ -14,6 +15,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         model_name = kwargs['model_name']
         template_file = kwargs['template_file']
+        file_ext = os.path.splitext(template_file)[1].lower()
 
         try:
             model = ML_Models.objects.get(model_name=model_name)
@@ -23,11 +25,19 @@ class Command(BaseCommand):
             return
 
         try:
-            features = pd.read_excel(template_file, header=None)[0].tolist()
-            self.stdout.write(self.style.SUCCESS(f"📄 Loaded {len(features)} features from template: {template_file}"))
+            if file_ext == ".csv":
+                features = pd.read_csv(template_file, header=None)[0].tolist()
+            elif file_ext in [".xlsx", ".xls"]:
+                features = pd.read_excel(template_file, header=None)[0].tolist()
+            else:
+                self.stdout.write(self.style.ERROR(f"❌ Unsupported file format: {file_ext}"))
+                return
+
+            self.stdout.write(self.style.SUCCESS(f"📄 Loaded {len(features)} features from file: {template_file}"))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f"❌ Failed to read Excel file: {e}"))
+            self.stdout.write(self.style.ERROR(f"❌ Failed to read file: {e}"))
             return
+
 
         count = 0
         missing = 0

@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.conf import settings
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -311,6 +313,13 @@ class batch_CVD_Risk_Output(models.Model):
 
 
 class ClinicianAccessRequest(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='clinician_access_requests',
+        null =True, #temporary
+        blank=True
+        )
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
     email = models.EmailField(unique=True)

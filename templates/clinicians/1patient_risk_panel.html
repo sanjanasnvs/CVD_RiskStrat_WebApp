@@ -1,0 +1,636 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Patient Risk Panel - CVD Risk Predictor{% endblock %}
+
+{% block content %}
+<style>
+  .dashboard-container {
+    min-height: calc(100vh - 200px);
+    padding: 2rem 0;
+  }
+  
+  .page-header {
+    background: linear-gradient(135deg, #1977cc 0%, #0056b3 100%);
+    color: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 32px rgba(25, 119, 204, 0.15);
+  }
+  
+  .page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .page-header p {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+  }
+  
+  .clinician-info {
+    text-align: right;
+  }
+  
+  .clinician-info h4 {
+    margin-bottom: 0.25rem;
+  }
+  
+  .clinician-info small {
+    opacity: 0.8;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border-left: 4px solid #1977cc;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  }
+  
+  .stat-card.high-risk {
+    border-left-color: #dc3545;
+  }
+  
+  .stat-card.inconclusive {
+    border-left-color: #ffc107;
+  }
+  
+  .stat-card.low-risk {
+    border-left-color: #28a745;
+  }
+  
+  .stat-number {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+  }
+  
+  .stat-label {
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  
+  .high-risk-alert {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    animation: pulse-glow 2s infinite;
+  }
+  
+  @keyframes pulse-glow {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+  }
+  
+  .search-filter-section {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  }
+  
+  .search-input {
+    border-radius: 50px;
+    border: 2px solid #e9ecef;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    width: 100%;
+    max-width: 400px;
+  }
+  
+  .search-input:focus {
+    border-color: #1977cc;
+    box-shadow: 0 0 0 0.2rem rgba(25, 119, 204, 0.25);
+    outline: none;
+  }
+  
+  .filter-buttons {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  
+  .filter-btn {
+    border-radius: 25px;
+    padding: 0.5rem 1.25rem;
+    border: 2px solid #1977cc;
+    background: white;
+    color: #1977cc;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  
+  .filter-btn.active,
+  .filter-btn:hover {
+    background: #1977cc;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(25, 119, 204, 0.3);
+  }
+  
+  .patients-table-container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+  }
+  
+  .patients-table {
+    width: 100%;
+    margin-bottom: 0;
+  }
+  
+  .patients-table thead th {
+    background: #f8f9fa;
+    border: none;
+    font-weight: 700;
+    color: #2c4964;
+    padding: 1.25rem 1rem;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .patients-table tbody td {
+    padding: 1.25rem 1rem;
+    vertical-align: middle;
+    border-top: 1px solid #f0f0f0;
+  }
+  
+  .patients-table tbody tr {
+    transition: background-color 0.2s ease;
+  }
+  
+  .patients-table tbody tr:hover {
+    background-color: #f8f9fa;
+  }
+  
+  .patients-table tbody tr.high-risk-row {
+    background-color: #fff5f5;
+    border-left: 4px solid #dc3545;
+  }
+  
+  .patient-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: #1977cc;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-right: 1rem;
+  }
+  
+  .patient-info {
+    display: flex;
+    align-items: center;
+  }
+  
+  .patient-details h6 {
+    margin-bottom: 0.25rem;
+    font-weight: 600;
+    color: #2c4964;
+  }
+  
+  .patient-details small {
+    color: #6c757d;
+  }
+  
+  .risk-badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .risk-badge.high {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+  }
+  
+  .risk-badge.inconclusive {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+  }
+  
+  .risk-badge.low {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+  }
+  
+  .risk-badge.pending {
+    background-color: #e2e3e5;
+    color: #383d41;
+    border: 1px solid #d6d8db;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .action-btn {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .action-btn.view {
+    background-color: #1977cc;
+    color: white;
+  }
+  
+  .action-btn.view:hover {
+    background-color: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(25, 119, 204, 0.3);
+  }
+  
+  .action-btn.email {
+    background-color: #28a745;
+    color: white;
+  }
+  
+  .action-btn.email:hover {
+    background-color: #1e7e34;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #6c757d;
+  }
+  
+  .empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.5;
+  }
+  
+  .empty-state h4 {
+    margin-bottom: 1rem;
+    color: #495057;
+  }
+  
+  .risk-score {
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  
+  .last-assessment {
+    font-size: 0.9rem;
+    color: #6c757d;
+  }
+  
+  @media (max-width: 768px) {
+    .page-header {
+      text-align: center;
+    }
+    
+    .clinician-info {
+      text-align: center;
+      margin-top: 1rem;
+    }
+    
+    .search-filter-section {
+      text-align: center;
+    }
+    
+    .filter-buttons {
+      justify-content: center;
+      margin-top: 1rem;
+    }
+    
+    .patients-table-container {
+      overflow-x: auto;
+    }
+    
+    .action-buttons {
+      flex-direction: column;
+    }
+  }
+</style>
+
+<section class="dashboard-container">
+  <div class="container">
+    
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1>
+            <i class="bi bi-heart-pulse"></i>
+            Patient Risk Panel
+          </h1>
+          <p>Monitor and manage your assigned patients' cardiovascular risk assessments</p>
+        </div>
+        <div class="col-md-4">
+          <div class="clinician-info">
+            <h4>Dr. {{ user.first_name }} {{ user.last_name }}</h4>
+            <small>{{ user.clinicians.specialty|default:"General Practice" }}</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- High Risk Alert -->
+    {% if high_risk_patients %}
+      <div class="high-risk-alert">
+        <i class="bi bi-exclamation-triangle-fill" style="font-size: 1.5rem;"></i>
+        <div class="flex-grow-1">
+          <h5 class="mb-1"><strong>High Risk Alert!</strong></h5>
+          <p class="mb-0">
+            You have {{ high_risk_patients|length }} patient{{ high_risk_patients|length|pluralize }} 
+            with high cardiovascular risk requiring immediate attention.
+          </p>
+        </div>
+        <button class="btn btn-light btn-sm" onclick="filterHighRisk()">
+          <i class="bi bi-eye me-1"></i>View Patients
+        </button>
+      </div>
+    {% endif %}
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number text-primary">{{ total_patients }}</div>
+        <div class="stat-label">Total Patients</div>
+      </div>
+      <div class="stat-card high-risk">
+        <div class="stat-number text-danger">{{ high_risk_count }}</div>
+        <div class="stat-label">High Risk</div>
+      </div>
+      <div class="stat-card inconclusive">
+        <div class="stat-number text-warning">{{ intermediate_risk_count }}</div>
+        <div class="stat-label">Inconclusive</div>
+      </div>
+      <div class="stat-card low-risk">
+        <div class="stat-number text-success">{{ low_risk_count }}</div>
+        <div class="stat-label">Low Risk</div>
+      </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="search-filter-section">
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control search-input border-start-0" 
+                   placeholder="Search patients by name or email..." 
+                   id="patientSearch">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="filter-buttons">
+            <button class="filter-btn active" data-filter="all">All Patients</button>
+            <button class="filter-btn" data-filter="high">High Risk</button>
+            <button class="filter-btn" data-filter="inconclusive">Inconclusive</button>
+            <button class="filter-btn" data-filter="low">Low Risk</button>
+            <button class="filter-btn" data-filter="pending">Pending</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Patients Table -->
+    <div class="patients-table-container">
+      {% if patient_data %}
+        <table class="table patients-table">
+          <thead>
+            <tr>
+              <th><i class="bi bi-person me-2"></i>Patient</th>
+              <th><i class="bi bi-calendar me-2"></i>Age</th>
+              <th><i class="bi bi-heart-pulse me-2"></i>Risk Score</th>
+              <th><i class="bi bi-shield me-2"></i>Risk Level</th>
+              <th><i class="bi bi-clock me-2"></i>Last Assessment</th>
+              <th><i class="bi bi-gear me-2"></i>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="patientTableBody">
+            {% for patient in patient_data %}
+              <tr class="patient-row {% if patient.is_high_risk %}high-risk-row{% endif %}" 
+                  data-risk-level="{% if patient.recommendation == 'High Risk' %}high{% elif patient.recommendation == 'Intermediate Risk' %}inconclusive{% elif patient.recommendation == 'Low Risk' %}low{% else %}pending{% endif %}"
+                  data-patient-name="{{ patient.name|lower }}"
+                  data-patient-email="{{ patient.email|lower }}">
+                
+                <!-- Patient Info -->
+                <td>
+                  <div class="patient-info">
+                    <div class="patient-avatar">
+                      {{ patient.name|slice:":1"|upper }}
+                    </div>
+                    <div class="patient-details">
+                      <h6>{{ patient.name }}</h6>
+                      <small>{{ patient.email }}</small>
+                    </div>
+                  </div>
+                </td>
+                
+                <!-- Age -->
+                <td>
+                  {% if patient.dob %}
+                    {{ patient.dob|timesince|slice:":2" }} years
+                  {% else %}
+                    <span class="text-muted">N/A</span>
+                  {% endif %}
+                </td>
+                
+                <!-- Risk Score -->
+                <td>
+                  {% if patient.risk_score %}
+                    <span class="risk-score">{{ patient.risk_score|floatformat:2 }}%</span>
+                  {% else %}
+                    <span class="text-muted">Pending</span>
+                  {% endif %}
+                </td>
+                
+                <!-- Risk Level -->
+                <td>
+                  {% if patient.recommendation == 'High Risk' %}
+                    <span class="risk-badge high">
+                      <i class="bi bi-exclamation-triangle"></i>
+                      High Risk
+                    </span>
+                  {% elif patient.recommendation == 'Intermediate Risk' %}
+                    <span class="risk-badge inconclusive">
+                      <i class="bi bi-dash-circle"></i>
+                      Inconclusive
+                    </span>
+                  {% elif patient.recommendation == 'Low Risk' %}
+                    <span class="risk-badge low">
+                      <i class="bi bi-check-circle"></i>
+                      Low Risk
+                    </span>
+                  {% else %}
+                    <span class="risk-badge pending">
+                      <i class="bi bi-clock"></i>
+                      Pending
+                    </span>
+                  {% endif %}
+                </td>
+                
+                <!-- Last Assessment -->
+                <td>
+                  {% if patient.assessed_at %}
+                    <div>{{ patient.assessed_at|date:"M d, Y" }}</div>
+                    <div class="last-assessment">{{ patient.assessed_at|timesince }} ago</div>
+                  {% else %}
+                    <span class="text-muted">No assessment</span>
+                  {% endif %}
+                </td>
+                
+                <!-- Actions -->
+                <td>
+                  <div class="action-buttons">
+                    <a href="{% url 'clinician_patient_results' patient.patient_id %}" 
+                       class="action-btn view" 
+                       title="View Detailed Results">
+                      <i class="bi bi-eye"></i>
+                      View
+                    </a>
+                    <a href="mailto:{{ patient.email }}" 
+                       class="action-btn email" 
+                       title="Email Patient">
+                      <i class="bi bi-envelope"></i>
+                      Email
+                    </a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <!-- Empty State -->
+        <div class="empty-state">
+          <i class="bi bi-people"></i>
+          <h4>No Patients Assigned</h4>
+          <p>You don't have any patients assigned to you yet. Contact your administrator for patient assignments.</p>
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('patientSearch');
+  const filterButtons = document.querySelectorAll('.filter-btn');
+  const tableBody = document.getElementById('patientTableBody');
+  const rows = tableBody ? tableBody.querySelectorAll('.patient-row') : [];
+
+  // Search functionality
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      const searchTerm = this.value.toLowerCase();
+      filterTable(searchTerm, getActiveFilter());
+    });
+  }
+
+  // Filter functionality
+  filterButtons.forEach(button => {
+    button.addEventListener('click', function() {
+      // Update active button
+      filterButtons.forEach(btn => btn.classList.remove('active'));
+      this.classList.add('active');
+      
+      const filterValue = this.getAttribute('data-filter');
+      const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+      filterTable(searchTerm, filterValue);
+    });
+  });
+
+  function getActiveFilter() {
+    const activeButton = document.querySelector('.filter-btn.active');
+    return activeButton ? activeButton.getAttribute('data-filter') : 'all';
+  }
+
+  function filterTable(searchTerm, filterValue) {
+    rows.forEach(row => {
+      const patientName = row.getAttribute('data-patient-name') || '';
+      const patientEmail = row.getAttribute('data-patient-email') || '';
+      const riskLevel = row.getAttribute('data-risk-level') || '';
+      
+      // Check search match
+      const matchesSearch = searchTerm === '' || 
+                           patientName.includes(searchTerm) || 
+                           patientEmail.includes(searchTerm);
+      
+      // Check filter match
+      const matchesFilter = filterValue === 'all' || riskLevel === filterValue;
+      
+      // Show/hide row
+      if (matchesSearch && matchesFilter) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+
+  // High risk filter function (called from alert banner)
+  window.filterHighRisk = function() {
+    filterButtons.forEach(btn => btn.classList.remove('active'));
+    document.querySelector('[data-filter="high"]').classList.add('active');
+    filterTable('', 'high');
+  };
+});
+</script>
+{% endblock %}

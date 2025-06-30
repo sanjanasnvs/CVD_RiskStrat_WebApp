@@ -32,7 +32,49 @@ CATEGORY_THRESHOLDS = {
     "Sociodemographics": (thresholds["Min_Threshold1"], thresholds["Max_Threshold1"]),
     "Health and medical history": (thresholds["Min_Threshold2"], thresholds["Max_Threshold2"]),
     "Sex-specific factors": (thresholds["Min_Threshold3"], thresholds["Max_Threshold3"]),
-    # add others as needed
+    "Early life factors": (thresholds["Min_Threshold4"], thresholds["Max_Threshold4"]),
+    "Family history": (thresholds["Min_Threshold5"], thresholds["Max_Threshold5"]),
+    "Lifestyle and environment": (thresholds["Min_Threshold6"], thresholds["Max_Threshold6"]),
+    "Psychosocial factors": (thresholds["Min_Threshold7"], thresholds["Max_Threshold7"])
+}
+
+def get_risk_category(score, category):
+    """
+    Determines patient's risk category based on the score and thresholds.
+    """
+    try:
+        idx = CATEGORY_ORDER.index(category) + 1  # because threshold columns are 1-indexed
+        min_t = thresholds[f"Min_Threshold{idx}"]
+        max_t = thresholds[f"Max_Threshold{idx}"]
+
+        if score < min_t:
+            return "Low Risk"
+        elif score > max_t:
+            return "High Risk"
+        else:
+            return "Inconclusive"
+    except Exception as e:
+        print(f"❌ Failed to classify risk: {e}")
+        return "Unknown"
+
+MODEL_FILE_MAPPING = {
+    "Sociodemographics": "model_files/ML_models/MRMR_COX_Sociodemographics.pkl",
+    "Health and medical history": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history.pkl",
+    "Sex-specific factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors.pkl",
+    "Early life factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors.pkl",
+    "Family history": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history.pkl",
+    "Lifestyle and environment": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment.pkl",
+    "Psychosocial factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors.pkl",
+}
+
+MODEL_DB_NAME_MAPPING = {
+    'model1_sociodemographic': 'MRMR_COX_Sociodemographics.pkl',
+    'model2_healthandmed': 'MRMR_COX_Sociodemographics_Health_and_medical_history.pkl',
+    'model3_SSF': 'MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors',
+    'model4_early_life': 'MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors.pkl',
+    'model5_family_history': 'MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history.pkl',
+    'model6_lifestyle': 'MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment.pkl',
+    'model7_biggestmodel': 'MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors.pkl'
 }
 
 
@@ -115,22 +157,51 @@ from django.urls import reverse
 @require_http_methods(["GET", "POST"])
 @login_required
 def assessment_view(request):
+    from django.db import connection
+    from django.db.models import Max
+
     category = request.GET.get('category')
     error_message = None
 
+    # Ordered form category flow
     CATEGORY_ORDER = [
-        "Sociodemographics", "Health and medical history", "Sex-specific factors",
-        "Early life factors", "Family history", "Lifestyle and environment", "Psychosocial factors"
+        "Sociodemographics",
+        "Health and medical history",
+        "Sex-specific factors",
+        "Early life factors",
+        "Family history",
+        "Lifestyle and environment",
+        "Psychosocial factors"
     ]
 
-    # All categories available in the database (fixed order)
+    # Category to function and model mapping
+    CATEGORY_MODEL_MAPPING = {
+        "Sociodemographics": model1_sociodemographic,
+        "Health and medical history": model2_healthandmed,
+        "Sex-specific factors": model3_SSF,
+        "Early life factors": model4_early_life,
+        "Family history": model5_family_history,
+        "Lifestyle and environment": model6_lifestyle,
+        "Psychosocial factors": model7_biggestmodel
+    }
+
+    MODEL_FILE_MAPPING = {
+        "Sociodemographics": "model_files/ML_models/MRMR_COX_Sociodemographics.pkl",
+        "Health and medical history": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history.pkl",
+        "Sex-specific factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors.pkl",
+        "Early life factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors.pkl",
+        "Family history": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history.pkl",
+        "Lifestyle and environment": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment.pkl",
+        "Psychosocial factors": "model_files/ML_models/MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors.pkl",
+    }
+
     raw_categories = CVD_risk_Questionnaire.objects.values_list('category', flat=True).distinct()
     all_categories = sorted(set(raw_categories), key=lambda x: CATEGORY_ORDER.index(x) if x in CATEGORY_ORDER else 999)
 
+    # Redirect to first unanswered category
     if not category and all_categories:
         return redirect(f"{reverse('start_assessment')}?category={all_categories[0]}")
 
-    # Navigation helpers
     try:
         current_index = all_categories.index(category)
         previous_category = all_categories[current_index - 1] if current_index > 0 else None
@@ -140,205 +211,167 @@ def assessment_view(request):
         next_category = None
 
     patient = Patients.objects.get(user=request.user)
-    all_questions = CVD_risk_Questionnaire.objects.filter(category=category).order_by('question_order')
 
+    all_questions = CVD_risk_Questionnaire.objects.filter(category=category).order_by('question_order')
+    visible_questions = get_visible_questions_for_patient_in_category(patient, category)
+
+    # Load latest saved responses to prefill
     saved_responses = {
-        r.question.question_id: (r.option_selected_id or r.numeric_response or r.boolean_response)
+        r.question.question_id: (
+            r.option_selected.encoded_value if r.option_selected else
+            r.numeric_response if r.numeric_response is not None else
+            r.boolean_response
+        )
         for r in CVD_risk_Responses.objects.filter(patient=patient)
     }
 
-    visible_questions = [q for q in all_questions if should_display_question(q, saved_responses)]
-
-    # ----- Handle POST Submission -----
+    # ---------- Handle POST (Form Submission) ----------
     if request.method == 'POST':
-        all_valid = True
         try:
-            if connection.connection and not connection.is_usable():
-                connection.close()
+            # Assign a new submission session if not yet set
+            if 'submission_id' not in request.session:
+                request.session['submission_id'] = str(uuid4())
+            submission_id = request.session['submission_id']
 
             for q in visible_questions:
                 key = f"question_{q.question_id}"
-                response_data = {}
                 options = CVD_risk_QuestionResponseOptions.objects.filter(question=q)
 
+                # Multi-select handling
                 if q.answer_type == "Toggle multiple answer":
                     values = request.POST.getlist(f"{key}_option")
                     if not values:
-                        all_valid = False
-                        break
-                    selected_options = CVD_risk_QuestionResponseOptions.objects.filter(id__in=values)
+                        continue
+                    selected_options = options.filter(id__in=values)
                     if not selected_options.exists():
-                        all_valid = False
-                        break
-                    response_obj, _ = CVD_risk_Responses.objects.get_or_create(
-                        patient=patient, question=q,
-                        defaults={'response_type': q.answer_type}
+                        continue
+                    response_obj = CVD_risk_Responses.objects.create(
+                        patient=patient, question=q, response_type=q.answer_type, submission_id=submission_id
                     )
                     response_obj.multi_selected_options.set(selected_options)
-                    response_obj.response_type = q.answer_type
                     response_obj.save()
                     continue
 
+                # Single/miscellaneous responses
                 value = request.POST.get(key)
-                if value is None or str(value).strip().lower() in ['select one answer', 'choose', ''] or str(value).strip() == "":
-                    all_valid = False
-                    break
+                if not value or value.lower() in ['select one answer', 'choose', '']:
+                    continue
+
+                response_obj = CVD_risk_Responses.objects.create(
+                    patient=patient, question=q, response_type=q.answer_type, submission_id=submission_id
+                )
 
                 if options.exists():
                     try:
                         selected_option = options.get(id=int(value))
-                        opt_text = selected_option.option_text.strip().lower()
-                        if not opt_text or opt_text in ['select one answer', 'choose', '']:
-                            raise ValueError("Invalid placeholder value selected.")
-                        response_data['option_selected'] = selected_option
-                        response_data['option_selected_id'] = selected_option.id
-                    except (CVD_risk_QuestionResponseOptions.DoesNotExist, ValueError):
-                        all_valid = False
-                        break
+                        response_obj.option_selected = selected_option
+                    except:
+                        continue
                 else:
                     try:
-                        response_data['numeric_response'] = float(value)
-                    except ValueError:
-                        response_data['boolean_response'] = value.lower() in ['yes', 'true', '1']
-
-                if not response_data:  # guard against saving blank responses
-                    all_valid = False
-                    break
-
-                response_obj, _ = CVD_risk_Responses.objects.get_or_create(patient=patient, question=q)
-                for k, v in response_data.items():
-                    setattr(response_obj, k, v)
+                        response_obj.numeric_response = float(value)
+                    except:
+                        response_obj.boolean_response = value.lower() in ['yes', 'true', '1']
                 response_obj.save()
 
         except DatabaseError:
-            all_valid = False
             connection.rollback()
-            messages.error(request, "Database error occurred. Please try again.")
-        except Exception:
-            all_valid = False
-            messages.error(request, "Unexpected error occurred. Please try again.")
+            messages.error(request, "Database error occurred.")
+        except Exception as e:
+            print(f"❌ Unexpected error: {e}")
+            messages.error(request, "Unexpected error occurred.")
 
-        if all_valid:
+        # Proceed only if at least one response was saved
+        if CVD_risk_Responses.objects.filter(patient=patient, question__category=category, submission_id=submission_id).exists():
             completed = request.session.get('completed_categories', [])
             if category not in completed:
                 completed.append(category)
                 request.session['completed_categories'] = completed
 
-            if category in CATEGORY_THRESHOLDS:
-                # Prepare input
-                responses = CVD_risk_Responses.objects.filter(patient=patient, question__category=category)
-                response_dict = {}
-                for r in responses:
-                   q_text = r.question.question_text.strip().lower()  # Normalize question key
-                   val = None
-
-                   if r.numeric_response is not None:
-                       val = r.numeric_response
-                   elif r.boolean_response is not None:
-                       val = 1 if r.boolean_response else 0
-                   elif r.option_selected is not None:
-                       opt = r.option_selected
-                       opt_text = opt.option_text.strip().lower()
-                       if opt_text not in ['select one answer', 'choose', '']:
-                           val = opt.value_range_start
-
-
-                   if val not in [None, '', 'select one answer', 'choose']:
-                        response_dict[q_text] = val
-
-                features = calculate_features_from_responses(response_dict)
-                    
-
-                # Load model + preprocessing
-                print("🔍 Loading model files and preprocessing tools...")
-                sample_df = pd.read_csv("model_files/correct_sociodemographics_sample.csv")
-                if 'Unnamed: 0' in sample_df.columns:
-                    sample_df = sample_df.drop(columns=['Unnamed: 0'])
-                model = joblib.load("model_files/MRMR_COX_Sociodemographics.pkl")
-                scaler = joblib.load("model_files/scaler.pkl")
-                imputer = joblib.load("model_files/sociodemographics_rf (1).pkl")
-                print("✅ Model and tools loaded successfully.")
-
-                input_cols = imputer.feature_names_in_.tolist()
-                features = calculate_features_from_responses(response_dict)
-                aligned = {col: features.get(col, 0) for col in input_cols}
-                print("🧮 Aligned model inputs:")
-                for k, v in aligned.items():
-                    print(f"  {k}: {v}")
- 
-                df = pd.DataFrame([aligned])
-                print("🔎 Raw model inputs before imputation:")
-                print(df.loc[:, (df != 0).any(axis=0)])
-                X = scaler.transform(imputer.transform(df))
-                print("✅ Finished imputation and scaling.")
-                risk_score = float(model.predict(X)[0])
-                print(f"📈 Calculated risk score for category '{category}': {risk_score:.4f}")
-
-                # Fetch model object from ML_Models table
+            # ---------- Model Evaluation ----------
+            if category in CATEGORY_MODEL_MAPPING:
+                model_module = CATEGORY_MODEL_MAPPING[category]
                 try:
-                    model_obj = ML_Models.objects.get(model_name="MRMR_COX_Sociodemographics")
-                except ML_Models.DoesNotExist:
-                    print("❌ Model not found in ML_Models table. Please run load_ml_models first.")
-                    raise
+                    df_scaled = model_module.calculate_features(patient.patient_id, submission_id)
+                    
+                    model_path = MODEL_FILE_MAPPING[category]
+                    print(f"🧠 Looking for model: {model_path}")
 
-                # Define thresholds and recommendations
-                low_th, high_th = CATEGORY_THRESHOLDS[category]
-                print(f"🔻 Thresholds -> Low: {low_th}, High: {high_th}")
+                    if not os.path.exists(model_path):
+                        raise FileNotFoundError(f"Model file not found for category: {category}")
 
-                recommendation = (
-                    "Low Risk" if risk_score < low_th else
-                    "High Risk" if risk_score > high_th else
-                    "Intermediate Risk"
-                )
+                    model = joblib.load(model_path)
+                    print("🧾 Final columns before prediction:", df_scaled.columns.tolist())
 
-                # Save to DB
-                Risk_Stratification.objects.create(
-                    patient_id=patient.patient_id,
-                    model_id=model_obj.model_id,  # foreign key referencing ML_Models table
-                    assessed_at=datetime.now(),
-                    risk_score=risk_score,
-                    recommendation=recommendation  # Optional: will set below
-                )
-                print("✅ Risk score saved to DB for patient:", patient.user.username)
+                    # Predict risk 
+                    risk_score = float(model.predict(df_scaled)[0])
+                    print(f"📈 Risk score = {risk_score:.2f}")
 
+                    risk_category = get_risk_category(risk_score, category)
+                    print(f"🧪 Risk classification: {risk_category}")
 
-                if risk_score < low_th:
-                    return render(request, "patients/final_message.html", {
-                        "risk_score": risk_score,
-                        "recommendation": "Low Risk",
-                        "message": "Based on your responses, you are currently at low risk. You can view detailed results in your dashboard."
-                    })
-                elif risk_score > high_th:
-                    return render(request, "patients/final_message.html", {
-                        "risk_score": risk_score,
-                        "recommendation": "High Risk",
-                        "message": "Based on your responses, you are currently at high risk. Please consult your care provider. Full details are available in your dashboard."
-                    })
-                else:
-                    return redirect(f"{reverse('start_assessment')}?category={next_category}")
+                    model_name_cleaned = os.path.basename(model_path).replace(".pkl", "")
+                    model_obj = ML_Models.objects.get(model_name=model_name_cleaned)
+
+                    # Save results with timestamp for grouping later
+                    assessed_time = datetime.now()
+                    Risk_Stratification.objects.create(
+                        patient=patient,
+                        model=model_obj,
+                        assessed_at=assessed_time,
+                        risk_score=risk_score,
+                        recommendation=risk_category,
+                        submission_id=submission_id
+                    )
+
+                    # Generate explainability plot
+                    plot_path = generate_explainability_plot(
+                        observation_row=df_scaled.iloc[0],
+                        full_feature_df=df_scaled,
+                        model_name=model_name_cleaned,  # e.g., 'HealthAndMedicalHistory'
+                        patient_id=patient.patient_id
+                        )
+                    
+                    # Early stopping — render final message if conclusive result reached
+                    if risk_category in ["Low Risk", "High Risk"]:
+                        request.session.pop("submission_id", None)
+                        return render(request, "patients/final_message.html", {
+                            "risk_score": risk_score,
+                            "recommendation": risk_category,
+                            "message": get_final_message_text(risk_category)
+                        })
+
+                except Exception as e:
+                    print(f"❌ Error during model execution for {category}: {e}")
+
+            # Only clear submission_id at end of full or early-stopped run
+            if risk_category in ["Low Risk", "High Risk"] or not next_category:
+                request.session.pop("submission_id", None)
 
             if next_category:
                 return redirect(f"{reverse('start_assessment')}?category={next_category}")
             else:
                 request.session['completed_categories'] = []
                 return redirect('patient_results')
+        else:
+            error_message = "Please answer at least one question before proceeding."
 
-    # ----- GET Display -----
+    # ---------- GET View ----------
     question_data = []
     for q in visible_questions:
         options = list(CVD_risk_QuestionResponseOptions.objects.filter(question=q))
-        saved = CVD_risk_Responses.objects.filter(patient=patient, question=q).first()
+        latest = CVD_risk_Responses.objects.filter(patient=patient, question=q).order_by('-last_updated').first()
 
         response_value = None
         response_id = None
         multi_ids = []
-        if saved:
+        if latest:
             if q.answer_type == "Enter integer answer":
-                response_value = saved.numeric_response
+                response_value = latest.numeric_response
             elif q.answer_type == "Select one answer":
-                response_id = str(saved.option_selected_id) if saved.option_selected_id else None
+                response_id = str(latest.option_selected_id) if latest.option_selected_id else None
             elif q.answer_type == "Toggle multiple answer":
-                multi_ids = saved.multi_selected_options.values_list('id', flat=True)
+                multi_ids = latest.multi_selected_options.values_list('id', flat=True)
 
         question_data.append({
             'question': q,
@@ -358,6 +391,7 @@ def assessment_view(request):
         'next_category': next_category,
         'error_message': error_message
     })
+
 
 
 
@@ -413,14 +447,14 @@ MODEL_METRICS = {
         "auroc": "0.7946",
         "precision": "97.31%",
         "recall": "12.39%",
-        "c_index": "0.00"
+        "c_index": "0.79"
     },
     "MRMR_COX_Sociodemographics_Health_and_medical_history_Sex-specific_factors_Early_life_factors_Family_history_Lifestyle_and_environment_Psychosocial_factors": {
         "accuracy": "86.59%",
         "auroc": "0.7942",
         "precision": "97.25%",
         "recall": "12.90%",
-        "c_index": "0.00"
+        "c_index": "0.71"
     }
 }
 
