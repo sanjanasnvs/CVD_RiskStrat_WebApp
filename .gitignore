@@ -1,2 +1,5 @@
 venv/
+model_files/*.pkl
+model_files/**/*.pkl
+__pycache__/
 *.pkl
